@@ -37,9 +37,9 @@ enum {
 	POST
 };
 
-class CJsonHelper{
+class CJsonHelper {
 public:
-	static bool toJson(const char *data, size_t data_len, Json::Value & result)
+	static bool toJson(const char *data, size_t data_len, Json::Value &result)
 	{
 		//CPrintFunTime tmp("CJsonHelper::toJson(start)");
 		if (data == NULL)return false;

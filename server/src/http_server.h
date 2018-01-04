@@ -114,10 +114,10 @@ private:
 };
 
 
-class CAccessServerApp : public CMCDFrame {
+class CHttpServerApp : public CMCDFrame {
 public:
-	CAccessServerApp();
-	virtual ~CAccessServerApp();
+	CHttpServerApp();
+	virtual ~CHttpServerApp();
 
 	virtual void ReceiveDataCCD2MCD(CHttpReqPkt &packet, unsigned int nFlow, unsigned int nIp, unsigned short nPort);
 	virtual void ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, unsigned short nPort);

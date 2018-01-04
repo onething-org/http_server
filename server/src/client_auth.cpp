@@ -11,7 +11,7 @@ CClientAuth::~CClientAuth()
 	m_accessServerApp = NULL;
 }
 
-void CClientAuth::SetDbInfo(const string &strDbName , const string& strHost , const string &strUser , const string &strPassword,  unsigned short nPort )
+void CClientAuth::SetDbInfo(const string &strDbName , const string &strHost, const string &strUser, const string &strPassword, unsigned short nPort)
 {
 	m_strHost = strHost;
 	m_strDb = strDbName;
@@ -20,22 +20,22 @@ void CClientAuth::SetDbInfo(const string &strDbName , const string& strHost , co
 	m_nPort = nPort;
 }
 
-void CClientAuth::SetTimeInterval(int interval){
+void CClientAuth::SetTimeInterval(int interval) {
 	m_nTimeInterval = interval;
 }
 
 bool CClientAuth::Connect()
 {
-	LogInfo("CClientAuth::Connect(db:%s, host:%s, user:%s, passwd:%s, port:%d)", m_strDb.c_str(),m_strHost.c_str(),m_strUser.c_str(),m_strPassword.c_str(),m_nPort);
+	LogInfo("CClientAuth::Connect(db:%s, host:%s, user:%s, passwd:%s, port:%d)", m_strDb.c_str(), m_strHost.c_str(), m_strUser.c_str(), m_strPassword.c_str(), m_nPort);
 
     m_mysqlConn.disconnect();
 
     m_mysqlConn.set_option(new SetCharsetNameOption("utf8"));
     m_mysqlConn.set_option(new MultiStatementsOption(true));
     m_mysqlConn.set_option(new MultiResultsOption(true));
-    bool bOk = m_mysqlConn.connect(m_strDb.c_str(),m_strHost.c_str(),m_strUser.c_str(),m_strPassword.c_str(),m_nPort);
+    bool bOk = m_mysqlConn.connect(m_strDb.c_str(), m_strHost.c_str(), m_strUser.c_str(), m_strPassword.c_str(), m_nPort);
 
-	if (bOk){
+	if (bOk) {
 		LogInfo("CClientAuth::Connect(connect to the db is ok)");
 		return true;
 	} else {
@@ -67,10 +67,13 @@ void CClientAuth::Run()
 	time_t nTimeNow = time(NULL);
 	m_nTimeLastUpdate = nTimeNow;
 	bool flag = true;
-	while(m_bContinue){
+	while(m_bContinue)
+	{
 		nTimeNow = time(NULL);
-		if ( flag || nTimeNow - m_nTimeLastUpdate >= m_nTimeInterval ){
-			if(!Connect()){
+		if (flag || nTimeNow - m_nTimeLastUpdate >= m_nTimeInterval)
+		{
+			if(!Connect())
+			{
 				sleep(30);
 				continue;
 			}
@@ -82,7 +85,8 @@ void CClientAuth::Run()
 			Store(result, query);
 
 			m_AuthInfos.clear();
-			for(size_t i = 0; i != result.size(); ++i){
+			for(size_t i = 0; i != result.size(); ++i)
+			{
 				int client_module = (int)result[i]["client_module"];
 				string password = (const char*)result[i]["password"];
 				int    disable = (int)result[i]["disable"];

@@ -8,9 +8,8 @@
 
 using namespace tfc::http;
 using namespace mtnc_lib;
-//测试
 
-class CHttpReqPkt{
+class CHttpReqPkt {
 public:
 	CHttpReqPkt(char *data, size_t data_len)
 		:_data(data)
@@ -30,20 +29,20 @@ public:
 
 	int Init()
 	{
-		if(_http_parse.Init(_data, _data_len) != 0){
+		if (_http_parse.Init(_data, _data_len) != 0) {
 			return -1;
 		}
 		_body = _data + GetHeadLength();
 
-		const char* uri = _http_parse.HttpUri();
+		const char *uri = _http_parse.HttpUri();
 		if(uri == NULL){
 			return -2;
 		}
 
-		while(*uri != '?' && *uri != 0)
+		while (*uri != '?' && *uri != 0)
 			uri++;
 
-		if(*uri == '?'){
+		if (*uri == '?') {
 			uri++;
 			//if(*uri == 0) return 0;
 			_qs_len = strlen(uri);
@@ -99,9 +98,9 @@ private:
 	CHttpParse          _http_parse;
 };
 
-class CHttpRspPkt{
+class CHttpRspPkt {
 public:
-	CHttpRspPkt(int code, string reason, const char * body = NULL, size_t body_len = 0)
+	CHttpRspPkt (int code, string reason, const char *body = NULL, size_t body_len = 0)
 	{
 		string body_str(body, body_len);		
 
@@ -135,7 +134,7 @@ public:
 	}
 
 private:
-	string              _http_pkg;
+	string _http_pkg;
 };
 
 #endif

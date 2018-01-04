@@ -1,4 +1,4 @@
-#include "access_server.h"
+#include "http_server.h"
 #include "param_check.h"
 //#include <gperftools/profiler.h>
 
@@ -20,7 +20,6 @@ unsigned int   g_nSerialTimeInterval;
 unsigned int   g_nHttpPacketMaxLen;
 time_t g_nNowTime;
 
-
 static const string BAD_JSON_REQUEST_REASON = CAjsErrorNoToStr::ErrorNoToStr(BAD_JSON_REQUEST);
 static const string INTERNET_SERVER_ERROR_REASON = CAjsErrorNoToStr::ErrorNoToStr(INTERNET_SERVER_ERROR);
 static const string GATWAY_TIMEOUT_REASON = CAjsErrorNoToStr::ErrorNoToStr(GATWAY_TIMEOUT);
@@ -29,9 +28,10 @@ static const string ACCESS_DENIED_REASON = CAjsErrorNoToStr::ErrorNoToStr(ACCESS
 
 static char r_reason_200[] = "OK";
 
-const string access_server_version = "access_server_version = 2.0.29";
+const string access_server_version = "http_server_version = 1.0.0";
 
-void LogJsonObj(int level, const Json::Value & obj){ 
+void LogJsonObj(int level, const Json::Value & obj)
+{ 
 	Json::StyledWriter writer; 
 	string strObj = writer.write(obj);
 	Log(level, "Json::Value :\n%s", strObj.c_str());
@@ -78,7 +78,7 @@ bool CRotationScheduler::GetAJobServer(unsigned short &job_server_id)
 	return true;
 }
 
-bool CRotationScheduler::GetAllJobServer(vector<unsigned short> &serverVct )
+bool CRotationScheduler::GetAllJobServer(vector<unsigned short> &serverVct)
 {
 	serverVct.clear();
 	for(set<unsigned short>::iterator it = m_jobServer_set.begin();
@@ -89,7 +89,7 @@ bool CRotationScheduler::GetAllJobServer(vector<unsigned short> &serverVct )
 	return true;
 }
 
-CAccessServerApp::CAccessServerApp()
+CHttpServerApp::CHttpServerApp()
 	:m_pScheduler(new CRotationScheduler()) , m_pStatistic(new CStatistic(false))
 	,m_logStatisticLastTime(0), m_logStatisticTimeInterval(0)
     ,m_adjustBufferLastTime(0), m_adjustBufferTimeInterval(0), m_adjustUniqueLastTime(0), m_adjustUniqueTimeInterval(0), m_nCcdRequests(0), m_nDccReceives(0)
@@ -110,7 +110,7 @@ CAccessServerApp::CAccessServerApp()
 	SetTimer(1);
 }
 
-CAccessServerApp::~CAccessServerApp()
+CHttpServerApp::~CHttpServerApp()
 {
 	delete m_pScheduler;
 	delete m_pStatistic;
@@ -121,7 +121,7 @@ CAccessServerApp::~CAccessServerApp()
 	m_clientAuth = NULL;
 }
 
-void CAccessServerApp::LoadCfg()
+void CHttpServerApp::LoadCfg()
 {
 	char szFile[255];
 	pid_t pID = getpid();
@@ -130,7 +130,7 @@ void CAccessServerApp::LoadCfg()
 	//读取
 	CIniFile cfgFile;
 	if (cfgFile.Load(szFile) != 0){
-		LogError("CAccessServerApp::LoadCfg(config file load error)");
+		LogError("CHttpServerApp::LoadCfg(config file load error)");
 		exit(EXIT_FAILURE);
 	}
 
@@ -139,9 +139,9 @@ void CAccessServerApp::LoadCfg()
 	int log_file_max_size = StringToInt(cfgFile.GetIni("log_file_max_size"));
 //	SetLogInfo(StringToInt(cfgFile.GetIni("log_file_max_num")), StringToInt(cfgFile.GetIni("log_file_max_size")));
 	SetLogInfo(log_file_max_num, log_file_max_size);
-	LogInfo("CAccessServerApp::LoadCfg(log_file_max_num :%u, log_file_max_size :%d)", log_file_max_num, log_file_max_size);
+	LogInfo("CHttpServerApp::LoadCfg(log_file_max_num :%u, log_file_max_size :%d)", log_file_max_num, log_file_max_size);
 	LogLevel(StringToLogLevel(cfgFile.GetIni("log_level")));
-	LogInfo("CAccessServerApp::LoadCfg(log_file :%s)", cfgFile.GetIni("log_file").c_str());
+	LogInfo("CHttpServerApp::LoadCfg(log_file :%s)", cfgFile.GetIni("log_file").c_str());
 
 	//get db infos
 	string strDb = cfgFile.GetIni("user_info_db", "ajs");
@@ -168,7 +168,7 @@ void CAccessServerApp::LoadCfg()
 	EthnetInfoDestroy();
 	if (IpStringToInt(g_nSerialServerIp, strSerialIp) != 0) {
 		LogWarning(
-				"CAccessServerApp::LoadCfg(serial_server_ip in config file is error, serial_server_ip: %s)",
+				"CHttpServerApp::LoadCfg(serial_server_ip in config file is error, serial_server_ip: %s)",
 				strSerialIp.c_str());
 		//exit(0);
 	}
@@ -178,7 +178,7 @@ void CAccessServerApp::LoadCfg()
 	//客户端valid ip
 	{
 		string valid_ips = cfgFile.GetIni("valid_ip_info", "");
-		LogInfo("CAccessServerApp::LoadCfg(valid_ip_info :%s)", valid_ips.c_str());
+		LogInfo("CHttpServerApp::LoadCfg(valid_ip_info :%s)", valid_ips.c_str());
 
 		vector<string> v_ip_vct;
 		SplitDataToVector(v_ip_vct, valid_ips, "|");
@@ -187,17 +187,17 @@ void CAccessServerApp::LoadCfg()
 			unsigned int ip;
 			if ( IpStringToInt(ip, Trim(v_ip_vct[i])) == 0){
 				m_validClientIp_set.insert(ip);
-				LogInfo("CAccessServerApp::LoadCfg(ip: %s)", v_ip_vct[i].c_str());
+				LogInfo("CHttpServerApp::LoadCfg(ip: %s)", v_ip_vct[i].c_str());
 			}
 			else 
-				LogError("CAccessServerApp::LoadCfg(invalid conf client ip: %s)", v_ip_vct[i].c_str());
+				LogError("CHttpServerApp::LoadCfg(invalid conf client ip: %s)", v_ip_vct[i].c_str());
 		}
 	}
 
 	//job servers' infomations
 	{
 		string valid_ips = cfgFile.GetIni("js_server_info", "");
-		LogInfo("CAccessServerApp::LoadCfg(js_server_info :%s)", valid_ips.c_str());
+		LogInfo("CHttpServerApp::LoadCfg(js_server_info :%s)", valid_ips.c_str());
 
 		vector<string> v_ip_vct;
 		SplitDataToVector(v_ip_vct, valid_ips, "|");
@@ -236,20 +236,20 @@ void CAccessServerApp::LoadCfg()
 					for (size_t j = 0; j != v_client_modules.size(); j++) {
 						int client_module = StringToInt(Trim(v_client_modules[j]));
 						m_clientModuleSpecializedJobServer[client_module] = jobServerId;
-						LogInfo("CAccessServerApp::LoadCfg( job_server id: %s, ip: %s, port: %s, client_module: %d)",
+						LogInfo("CHttpServerApp::LoadCfg( job_server id: %s, ip: %s, port: %s, client_module: %d)",
 								info_v[0].c_str(), info_v[1].c_str(), info_v[2].c_str(), client_module);
 					}
 					continue;
 				} else if (info_v.size() == 3){
 					//参加调度的jobserver
 					m_schedulerJobServer_set.insert(jobServerId);
-					LogInfo("CAccessServerApp::LoadCfg( job_server id: %s, ip: %s, port: %s)",
+					LogInfo("CHttpServerApp::LoadCfg( job_server id: %s, ip: %s, port: %s)",
 							info_v[0].c_str(), info_v[1].c_str(), info_v[2].c_str());
 				}
 
 			}
 			else
-				LogError("CAccessServerApp::LoadCfg(invalid conf job server ip : %s)", v_ip_vct[i].c_str());
+				LogError("CHttpServerApp::LoadCfg(invalid conf job server ip : %s)", v_ip_vct[i].c_str());
 		}
 
 	}
@@ -262,38 +262,37 @@ void CAccessServerApp::LoadCfg()
 		*/
 	}
 
-
-	//json参数检查配置
+	// json参数检查配置
 	{
 		g_nDefaultClientModule = StringToInt(cfgFile.GetIni("default_client_module"));
-		LogInfo("CAccessServerApp::LoadCfg(g_nDefaultClientModule: %d)", g_nDefaultClientModule);
+		LogInfo("CHttpServerApp::LoadCfg(g_nDefaultClientModule: %d)", g_nDefaultClientModule);
 		g_nDefaultStep = StringToInt(cfgFile.GetIni("default_step"));
-		LogInfo("CAccessServerApp::LoadCfg(g_nDefaultStep: %d)", g_nDefaultStep);
+		LogInfo("CHttpServerApp::LoadCfg(g_nDefaultStep: %d)", g_nDefaultStep);
 		g_nDefaultErrDeal = StringToInt(cfgFile.GetIni("default_err_deal"));
-		LogInfo("CAccessServerApp::LoadCfg(g_nDefaultErrDeal: %d)", g_nDefaultErrDeal);
+		LogInfo("CHttpServerApp::LoadCfg(g_nDefaultErrDeal: %d)", g_nDefaultErrDeal);
 		g_nDefaultBufSize = StringToInt(cfgFile.GetIni("default_buf_size"));
-		LogInfo("CAccessServerApp::LoadCfg(g_nDefaultBufSize: %d)", g_nDefaultBufSize);
+		LogInfo("CHttpServerApp::LoadCfg(g_nDefaultBufSize: %d)", g_nDefaultBufSize);
 		g_nDefaultTimeout = StringToInt(cfgFile.GetIni("default_time_out"));
-		LogInfo("CAccessServerApp::LoadCfg(g_nDefaultTimeout: %d)", g_nDefaultTimeout);
+		LogInfo("CHttpServerApp::LoadCfg(g_nDefaultTimeout: %d)", g_nDefaultTimeout);
 		g_nDefaultSignal = StringToInt(cfgFile.GetIni("default_signal"));
-		LogInfo("CAccessServerApp::LoadCfg(g_nDefaultSignal: %d)", g_nDefaultSignal);
+		LogInfo("CHttpServerApp::LoadCfg(g_nDefaultSignal: %d)", g_nDefaultSignal);
 
 		g_strDefaultData = cfgFile.GetIni("default_data");
-		LogInfo("CAccessServerApp::LoadCfg(g_strDefaultData: %s)", g_strDefaultData.c_str());
+		LogInfo("CHttpServerApp::LoadCfg(g_strDefaultData: %s)", g_strDefaultData.c_str());
 		g_strDefaultUser = cfgFile.GetIni("default_user");
-		LogInfo("CAccessServerApp::LoadCfg(g_strDefaultUser: %s)", g_strDefaultUser.c_str());
+		LogInfo("CHttpServerApp::LoadCfg(g_strDefaultUser: %s)", g_strDefaultUser.c_str());
 	}
 
 	//job server回包的超时时间
 	g_jobServerTimeOut = StringToInt(cfgFile.GetIni("job_server_time_out"));
-	LogInfo("CAccessServerApp::LoadCfg(g_jobServerTimeOut: %d)", g_jobServerTimeOut);
+	LogInfo("CHttpServerApp::LoadCfg(g_jobServerTimeOut: %d)", g_jobServerTimeOut);
 
 	//发送query的时间间隔
 	g_sleepTime = StringToInt(cfgFile.GetIni("create_sync_query_time_interval"));
-	LogInfo("CAccessServerApp::LoadCfg(g_sleepTime: %d)", g_sleepTime);
+	LogInfo("CHttpServerApp::LoadCfg(g_sleepTime: %d)", g_sleepTime);
 
 	g_nSerialTimeInterval = StringToInt(cfgFile.GetIni("serial_server_schedule_time_interval", "0"));
-	LogInfo("CAccessServerApp::LoadCfg(serial_server_schedule_time_interval: %d ms)", g_nSerialTimeInterval);
+	LogInfo("CHttpServerApp::LoadCfg(serial_server_schedule_time_interval: %d ms)", g_nSerialTimeInterval);
 
 	g_nHttpPacketMaxLen = StringToInt(cfgFile.GetIni("max_http_packet_length", "5242880"));
 
@@ -301,33 +300,33 @@ void CAccessServerApp::LoadCfg()
 
 	//调整buffer大小的时间间隔
 	m_adjustBufferTimeInterval = StringToInt(cfgFile.GetIni("ajust_buffer_time_interval"));
-	LogInfo("CAccessServerApp::LoadCfg(m_adjustBufferTimeInterval: %d)", m_adjustBufferTimeInterval);
+	LogInfo("CHttpServerApp::LoadCfg(m_adjustBufferTimeInterval: %d)", m_adjustBufferTimeInterval);
 
     //调整unique id的时间间隔
     m_adjustUniqueTimeInterval = StringToInt(cfgFile.GetIni("ajust_unique_time_interval", "3600"));
-    LogInfo("CAccessServerApp::LoadCfg(m_adjustUniqueTimeInterval: %d)", m_adjustUniqueTimeInterval);
+    LogInfo("CHttpServerApp::LoadCfg(m_adjustUniqueTimeInterval: %d)", m_adjustUniqueTimeInterval);
 
 	//打印统计信息的时间间隔
 	m_logStatisticTimeInterval = StringToInt(cfgFile.GetIni("log_statistic_time_interval"));
-	LogInfo("CAccessServerApp::LoadCfg(m_logStatisticTimeInterval: %d)", m_logStatisticTimeInterval);
+	LogInfo("CHttpServerApp::LoadCfg(m_logStatisticTimeInterval: %d)", m_logStatisticTimeInterval);
 
 	g_bAccessControl = (StringToInt(cfgFile.GetIni("no_access_control", "0")) == 1 ? false : true);
-	LogInfo("CAccessServerApp::LoadCfg(g_bAccessControl: %s)", cfgFile.GetIni("no_access_control", "0").c_str());
+	LogInfo("CHttpServerApp::LoadCfg(g_bAccessControl: %s)", cfgFile.GetIni("no_access_control", "0").c_str());
 
 	m_pStatistic->Inittialize(cfgFile.GetIni("stat_file", "../log/stat").c_str());
 
 	g_nClearAsyncTimeInterval = StringToInt(cfgFile.GetIni("clear_async_job_time_interval", "600"));
-	LogInfo("CAccessServerApp::LoadCfg(clear_async_job_time_interval: %d)", g_nClearAsyncTimeInterval);
+	LogInfo("CHttpServerApp::LoadCfg(clear_async_job_time_interval: %d)", g_nClearAsyncTimeInterval);
 
 }
 
-void CAccessServerApp::OnExpire(unsigned int nUniqueId)
+void CHttpServerApp::OnExpire(unsigned int nUniqueId)
 {
 	//同步任务向js的请求超时
     map<unsigned int, SyncReqInfo>::iterator clientIt = m_mapSyncReqInfo.find(nUniqueId);
 	if (clientIt == m_mapSyncReqInfo.end()) {
 		LogWarning(
-				"CAccessServerApp::OnExpire(client id is not exist. flow id: %u)",
+				"CHttpServerApp::OnExpire(client id is not exist. flow id: %u)",
                 nUniqueId);
 		return;
 	}
@@ -335,18 +334,18 @@ void CAccessServerApp::OnExpire(unsigned int nUniqueId)
 	if (clientIt->second.status == SyncReqInfo::CREATE_SYNC_WAIT_RSP_QUERY_FIELD
 			&& clientIt->second.retry_count-- > 0) {
 
-		LogDebug("CAccessServerApp::OnExpire(we will send query packet next time. flow id: %u, left retry count: %d)",
+		LogDebug("CHttpServerApp::OnExpire(we will send query packet next time. flow id: %u, left retry count: %d)",
                 nUniqueId, clientIt->second.retry_count);
 		clientIt->second.status = SyncReqInfo::CREATE_SYNC_WAIT_REQ_QUERY_FIELD;
 	} else {
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
 
         m_mapSyncReqInfo.erase(nUniqueId);
-        LogWarning("CAccessServerApp::OnExpire(flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::OnExpire(flow id: %u)", nUniqueId);
 	}
 }
 
-void CAccessServerApp::OnTimer(time_t cur)
+void CHttpServerApp::OnTimer(time_t cur)
 {
 	g_nNowTime = cur;
 	//发送
@@ -354,7 +353,7 @@ void CAccessServerApp::OnTimer(time_t cur)
 
 	if(cur > g_timeLastClearAsyncJob) {
 		if ( cur - g_timeLastClearAsyncJob > g_nClearAsyncTimeInterval ) {
-			//LogDebug("CAccessServerApp::OnTimer(cur_time: %u, last clear time: %u, interval: %d)",
+			//LogDebug("CHttpServerApp::OnTimer(cur_time: %u, last clear time: %u, interval: %d)",
 			//		(unsigned int)cur, (unsigned int)g_timeLastClearAsyncJob, g_nClearAsyncTimeInterval);
 			DealAsyncTasks(cur);
 			g_timeLastClearAsyncJob = cur;
@@ -371,7 +370,7 @@ void CAccessServerApp::OnTimer(time_t cur)
 	return;
 }
 
-void CAccessServerApp::DealSyncTasks(time_t cur)
+void CHttpServerApp::DealSyncTasks(time_t cur)
 {
 	map<unsigned int, SyncReqInfo>::iterator it = m_mapSyncReqInfo.begin();
 	while ( it != m_mapSyncReqInfo.end()){
@@ -404,34 +403,34 @@ void CAccessServerApp::DealSyncTasks(time_t cur)
                 AddToTimeoutQueue(info.uniq_id, g_jobServerTimeOut);
 			}
 		} else {
-			LogWarning("CAccessServerApp::DealSyncTasks(the time of system has been changed!) ");
+			LogWarning("CHttpServerApp::DealSyncTasks(the time of system has been changed!) ");
 			it->second.last_send_time = cur;
 		}
 		it++;
 	}
 }
 
-void CAccessServerApp::DealAsyncTasks(time_t cur)
+void CHttpServerApp::DealAsyncTasks(time_t cur)
 {
 	map<unsigned int, AsyncReqInfo>::iterator it = m_mapAsyncReqInfo.begin();
 	while ( it != m_mapAsyncReqInfo.end()){
 
 		if ( cur > it->second.create_time ){
 			if ((int)cur - (int)it->second.create_time >= (int)g_jobServerTimeOut ){
-				LogWarning("CAccessServerApp::DealAsyncTasks(async job time out. flow id: %u, time_out: %d)",
+				LogWarning("CHttpServerApp::DealAsyncTasks(async job time out. flow id: %u, time_out: %d)",
 										it->first, (int)(cur - it->second.create_time));
 				m_mapAsyncReqInfo.erase(it++);
 				continue;
 			}
 		} else {
-			LogWarning("CAccessServerApp::DealAsyncTasks(the time of system has been changed!) ");
+			LogWarning("CHttpServerApp::DealAsyncTasks(the time of system has been changed!) ");
 			it->second.create_time = cur;
 		}
 		it++;
 	}
 }
 
-void CAccessServerApp::AdjustAsnBuf(time_t cur)
+void CHttpServerApp::AdjustAsnBuf(time_t cur)
 {
 	if ( cur > m_adjustBufferLastTime ) {
 		if ( m_adjustBufferTimeInterval > 0 && cur - m_adjustBufferLastTime >= m_adjustBufferTimeInterval ){
@@ -442,13 +441,13 @@ void CAccessServerApp::AdjustAsnBuf(time_t cur)
 	m_adjustBufferLastTime = cur;
 }
 
-void CAccessServerApp::AdjustUniqueBuf(time_t cur)
+void CHttpServerApp::AdjustUniqueBuf(time_t cur)
 {
     if(cur > m_adjustUniqueLastTime)
     {
         if( m_adjustUniqueTimeInterval > 0 && cur - m_adjustUniqueLastTime > m_adjustUniqueTimeInterval)
         {
-            LogInfo("CAccessServerApp::AdjustUniqueBuf(before adjust, the size is : %d)", m_mapUniqueId.size());
+            LogInfo("CHttpServerApp::AdjustUniqueBuf(before adjust, the size is : %d)", m_mapUniqueId.size());
 
             for(map<unsigned int, unsigned long long>::iterator it = m_mapUniqueId.begin(); it != m_mapUniqueId.end(); ++it)
             {
@@ -460,7 +459,7 @@ void CAccessServerApp::AdjustUniqueBuf(time_t cur)
                 }
             }
 
-            LogInfo("CAccessServerApp::AdjustUniqueBuf(after adjust, the size is : %d)", m_mapUniqueId.size());
+            LogInfo("CHttpServerApp::AdjustUniqueBuf(after adjust, the size is : %d)", m_mapUniqueId.size());
             m_adjustUniqueLastTime = cur;
         }
         else
@@ -474,7 +473,7 @@ void CAccessServerApp::AdjustUniqueBuf(time_t cur)
     }
 }
 
-void CAccessServerApp::LogStatisticInfo(time_t cur)
+void CHttpServerApp::LogStatisticInfo(time_t cur)
 {
 	if ( m_logStatisticLastTime >= cur){
 		m_logStatisticLastTime = cur;
@@ -505,7 +504,7 @@ void CAccessServerApp::LogStatisticInfo(time_t cur)
 
 }
 
-void CAccessServerApp::OnSignalUser1()
+void CHttpServerApp::OnSignalUser1()
 {
 	LogInfo("RECEIVE SIGNAL USR1");
 	LoadCfg();
@@ -520,7 +519,7 @@ void CAccessServerApp::OnSignalUser1()
 	return;
 }
 
-void CAccessServerApp::PrintJobServerInfos()
+void CHttpServerApp::PrintJobServerInfos()
 {
 	map<unsigned short, set<int> > jobServerId2ClientModules;
 
@@ -550,21 +549,21 @@ void CAccessServerApp::PrintJobServerInfos()
 	}
 }
 
-void CAccessServerApp::OnSignalUser2()
+void CHttpServerApp::OnSignalUser2()
 {
 	LogInfo("RECEIVE SIGNAL USR2");
 	//ProfilerStop();
 	exit(0);
 }
 
-void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, unsigned short nPort)
+void CHttpServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, unsigned short nPort)
 {
 	m_nDccReceives++;
 
     unsigned int nUniqueId = packet.append;
 	Ajs *body = packet.body;
 
-	LogDebug("CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket append id: %u)",
+	LogDebug("CHttpServerApp::ReceiveDataDCC2MCD(AjsPacket append id: %u)",
             nUniqueId);
 
     map<unsigned int, SyncReqInfo>::iterator syncIt = m_mapSyncReqInfo.find(nUniqueId);
@@ -585,7 +584,7 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
                 RspCreateBatch(body->rspJobCreateList, nIp, nPort, nUniqueId);
 				break;
 			default:
-				LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobCreateListCid, async error type. ccd flow id: %u, type: %d)",
+				LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobCreateListCid, async error type. ccd flow id: %u, type: %d)",
                                     nUniqueId, asyncIt->second.type);
 			}
 		} else if (syncIt != m_mapSyncReqInfo.end()){
@@ -594,10 +593,10 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
 			if (syncIt->second.type == SyncReqInfo::CREATE_SYNC || syncIt->second.type == SyncReqInfo::CREATE_SYNC2)
                 RspCreateSync2((void *)body->rspJobCreateList, nIp, nPort, nUniqueId, body->choiceId);
 			else
-				LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobCreateListCid, sync error type. ccd flow id: %u, type: %d)",
+				LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobCreateListCid, sync error type. ccd flow id: %u, type: %d)",
                                                     nUniqueId, syncIt->second.type);
 		} else {
-			LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobCreateListCid, can not find ccd flow in both map. ccd flow id: %u)",
+			LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobCreateListCid, can not find ccd flow in both map. ccd flow id: %u)",
                     nUniqueId);
 		}
 		break;
@@ -612,11 +611,11 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
                 RspSetActionBatch(body->rspJobSetActionList, nUniqueId, nIp);
 				break;
 			default:
-				LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobSetActionListCid, async error type. ccd flow id: %u, type: %d)",
+				LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobSetActionListCid, async error type. ccd flow id: %u, type: %d)",
                                             nUniqueId, asyncIt->second.type);
 			}
 		} else {
-			LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobSetActionListCid, can not find ccd flow in both map. ccd flow id: %u)",
+			LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobSetActionListCid, can not find ccd flow in both map. ccd flow id: %u)",
                             nUniqueId);
 		}
 		break;
@@ -632,7 +631,7 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
 				break;
 			}
 		} else {
-			LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobUpdateListCid, can not find ccd flow in both map. ccd flow id: %u)",
+			LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobUpdateListCid, can not find ccd flow in both map. ccd flow id: %u)",
                             nUniqueId);
 		}
 		break;
@@ -650,7 +649,7 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
                 RspQueryBatch(body->rspJobQueryAllList, nUniqueId, nIp);
 				break;
 			default:
-				LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryAllListCid, async error type. ccd flow id: %u, type: %d)",
+				LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryAllListCid, async error type. ccd flow id: %u, type: %d)",
                                     nUniqueId, asyncIt->second.type);
 			}
 		} else if (syncIt != m_mapSyncReqInfo.end()){
@@ -659,10 +658,10 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
 			if (syncIt->second.type == SyncReqInfo::CREATE_SYNC || syncIt->second.type == SyncReqInfo::CREATE_SYNC2)
                 RspCreateSync2((void *)body->rspJobCreateList, nIp, nPort, nUniqueId, body->choiceId);
 			else
-				LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryAllListCid, sync error type. ccd flow id: %u, type: %d)",
+				LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryAllListCid, sync error type. ccd flow id: %u, type: %d)",
                                 nUniqueId, syncIt->second.type);
 		} else {
-			LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryAllListCid, can not find ccd flow in both map. ccd flow id: %u)",
+			LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryAllListCid, can not find ccd flow in both map. ccd flow id: %u)",
                             nUniqueId);
 		}
 		break;
@@ -680,7 +679,7 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
                 RspQueryTime(body->rspJobQueryFieldList, nUniqueId, nIp);
 				break;
 			default:
-				LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryFieldListCid, async error type. ccd flow id: %u, type: %d)",
+				LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryFieldListCid, async error type. ccd flow id: %u, type: %d)",
                                                     nUniqueId, asyncIt->second.type);
 			}
 
@@ -690,10 +689,10 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
 			if (syncIt->second.type == SyncReqInfo::CREATE_SYNC || syncIt->second.type == SyncReqInfo::CREATE_SYNC2)
                 RspCreateSync2((void *)body->rspJobCreateList, nIp, nPort, nUniqueId, body->choiceId);
 			else
-				LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryFieldListCid, sync error type. ccd flow id: %u, type: %d)",
+				LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryFieldListCid, sync error type. ccd flow id: %u, type: %d)",
                                 nUniqueId, syncIt->second.type);
 		} else {
-			LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryFieldListCid, can not find ccd flow in both map. ccd flow id: %u)",
+			LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQueryFieldListCid, can not find ccd flow in both map. ccd flow id: %u)",
                             nUniqueId);
 		}
 		break;
@@ -705,11 +704,11 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
                 RspQuerySelect(body->rspJobQuerySelect, nUniqueId, nIp);
 				break;
 			default:
-				LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQuerySelectCid, async error type. ccd flow id: %u, type: %d)",
+				LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQuerySelectCid, async error type. ccd flow id: %u, type: %d)",
                                                                     nUniqueId, asyncIt->second.type);
 			}
 		} else {
-			LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQuerySelectCid, can not find ccd flow in both map. ccd flow id: %u)",
+			LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobQuerySelectCid, can not find ccd flow in both map. ccd flow id: %u)",
                             nUniqueId);
 		}
 		break;
@@ -724,11 +723,11 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
                 RspDeleteBatch(body->rspJobDeleteList, nUniqueId, nIp);
 				break;
 			default:
-				LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobDeleteListCid, async error type. ccd flow id: %u, type: %d)",
+				LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobDeleteListCid, async error type. ccd flow id: %u, type: %d)",
                                                                                     nUniqueId, asyncIt->second.type);
 			}
 		} else {
-			LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspJobDeleteListCid, can not find ccd flow in both map. ccd flow id: %u)",
+			LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspJobDeleteListCid, can not find ccd flow in both map. ccd flow id: %u)",
                             nUniqueId);
 		}
 		break;
@@ -743,7 +742,7 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
 			//异步任务
             RspSequenceCreate(body->rspSerialJobCreateList, nUniqueId, nIp);
 		} else {
-			LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspSerialJobCreateListCid, can not find ccd flow in both map. ccd flow id: %u)",
+			LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspSerialJobCreateListCid, can not find ccd flow in both map. ccd flow id: %u)",
                             nUniqueId);
 		}
 		break;
@@ -752,7 +751,7 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
 			//异步任务
             RspSequenceErase(body->rspSerialJobEraseList, nUniqueId, nIp);
 		} else {
-			LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspSerialJobEraseListCid, can not find ccd flow in both map. ccd flow id: %u)",
+			LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspSerialJobEraseListCid, can not find ccd flow in both map. ccd flow id: %u)",
                             nUniqueId);
 		}
 		break;
@@ -761,7 +760,7 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
 			//异步任务
             RspSequenceDelete(body->rspSerialJobDeleteList, nUniqueId, nIp);
 		} else {
-			LogWarning("CAccessServerApp::ReceiveDataDCC2MCD(Ajs::rspSerialJobDeleteListCid, can not find ccd flow in both map. ccd flow id: %u)",
+			LogWarning("CHttpServerApp::ReceiveDataDCC2MCD(Ajs::rspSerialJobDeleteListCid, can not find ccd flow in both map. ccd flow id: %u)",
                             nUniqueId);
 		}
 		break;
@@ -771,26 +770,26 @@ void CAccessServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, u
 
 }
 
-void CAccessServerApp::ReceiveDataCCD2MCD(CHttpReqPkt &packet, 
+void CHttpServerApp::ReceiveDataCCD2MCD(CHttpReqPkt &packet, 
 		unsigned int nFlow,
 		unsigned int nIp,
 		unsigned short nPort)
 {
 	m_nCcdRequests++;
-    LogLowest("CAccessServerApp::ReceiveDataCCD2MCD(flow %u, ip %u, port %u)", nFlow, nIp, nPort); 
+    LogLowest("CHttpServerApp::ReceiveDataCCD2MCD(flow %u, ip %u, port %u)", nFlow, nIp, nPort); 
 
 	if (g_bAccessControl && !AccessControl(nIp, nPort) ){
 		m_nInvalidCcdRequest++;
 		string ip;
 		IpIntToString(ip, nIp);
-		LogWarning("CAccessServerApp::ReceiveDataCCD2MCD(unauthorized client ip: %s, flow id: %u)", ip.c_str(), nFlow);
+		LogWarning("CHttpServerApp::ReceiveDataCCD2MCD(unauthorized client ip: %s, flow id: %u)", ip.c_str(), nFlow);
 		SendErrHttpRsp(ACCESS_DENIED, ACCESS_DENIED_REASON + "Ip Forbidden", nFlow);
 		return;
 	}
 
 	if ((int)g_nHttpPacketMaxLen < packet.GetHeadLength() + packet.GetBodyLength()){
 		//HTTP包长度控制
-		LogWarning("CAccessServerApp::ReceiveDataCCD2MCD(http packet is too long. flow id: %u)", nFlow);
+		LogWarning("CHttpServerApp::ReceiveDataCCD2MCD(http packet is too long. flow id: %u)", nFlow);
 		SendErrHttpRsp(ACCESS_DENIED, ACCESS_DENIED_REASON + "packet is too long", nFlow);
 		return;
 	}
@@ -821,14 +820,14 @@ void CAccessServerApp::ReceiveDataCCD2MCD(CHttpReqPkt &packet,
 			SendErrHttpRsp(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON, nFlow);
 		}
 	} else {
-		LogDebug("CAccessServerApp::ReceiveDataCCD2MCD( INVALID METHOD )");
+		LogDebug("CHttpServerApp::ReceiveDataCCD2MCD( INVALID METHOD )");
 		SendErrHttpRsp(METHOD_NOT_ALLOWED, METHOD_NOT_ALLOWED_REASON, nFlow);
 	}
 }
 
-void CAccessServerApp::ChildAction()
+void CHttpServerApp::ChildAction()
 {
-	LogDebug("CAccessServerApp::ChildAction()");
+	LogDebug("CHttpServerApp::ChildAction()");
 	m_logStatisticLastTime = g_nNowTime;
 	m_adjustBufferLastTime = g_nNowTime;
 
@@ -837,13 +836,13 @@ void CAccessServerApp::ChildAction()
 	//ProfilerStart("CPUProfile");
 }
 
-void CAccessServerApp::HandleJsonRequest(Json::Value &request,
+void CHttpServerApp::HandleJsonRequest(Json::Value &request,
 	   	unsigned int nFlow)
 {
 	LogJsonObj(LOG_LEVEL_LOWEST, request);
 
 	if (!request.isMember("cmd_type")){
-		LogWarning("CAccessServerApp::HandleJsonRequest(Json:: cmd_type is null, flow id: %u)", nFlow);
+		LogWarning("CHttpServerApp::HandleJsonRequest(Json:: cmd_type is null, flow id: %u)", nFlow);
 		SendErrHttpRsp(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'cmd_type',error:'empty value'", nFlow);
 		return;
 	}
@@ -852,7 +851,7 @@ void CAccessServerApp::HandleJsonRequest(Json::Value &request,
 	int ret = CheckCmdType(cmd_type);
 
 	if (ret == -1){
-		LogWarning("CAccessServerApp::HandleJsonRequest(Json:: cmd_type is invalid, flow id: %u)", nFlow);
+		LogWarning("CHttpServerApp::HandleJsonRequest(Json:: cmd_type is invalid, flow id: %u)", nFlow);
 		SendErrHttpRsp(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'cmd_type',error:'invalid value'", nFlow);
 		return;
 	}
@@ -865,9 +864,9 @@ void CAccessServerApp::HandleJsonRequest(Json::Value &request,
 
     m_nFlow = nFlow;
     m_nUniqueId = GetEmptyUniqueID(m_nFlow, m_nNowAppend);
-    LogError("CAccessServerApp::HandleJsonRequest(flow %u, append %u, unique %u)", m_nFlow, m_nNowAppend, m_nUniqueId);
+    LogError("CHttpServerApp::HandleJsonRequest(flow %u, append %u, unique %u)", m_nFlow, m_nNowAppend, m_nUniqueId);
 
-	LogDebug("CAccessServerApp::HandleJsonRequest(flow id: %u, cmd_type: %s, append: %u)",
+	LogDebug("CHttpServerApp::HandleJsonRequest(flow id: %u, cmd_type: %s, append: %u)",
 			nFlow, cmd_type.c_str(), m_nNowAppend);
 
 	if(cmd_type == "create" || cmd_type == "create2"
@@ -935,7 +934,7 @@ void CAccessServerApp::HandleJsonRequest(Json::Value &request,
 
 }
 
-void CAccessServerApp::SendErrHttpRsp(int code, const string& reason, unsigned int &nFlow)
+void CHttpServerApp::SendErrHttpRsp(int code, const string& reason, unsigned int &nFlow)
 {
 	Json::Value response;
 	response["errno"] = code;
@@ -949,12 +948,12 @@ void CAccessServerApp::SendErrHttpRsp(int code, const string& reason, unsigned i
 
 }
 
-void CAccessServerApp::SendErrHttpRspByUniqueId(int code, const string &reason, unsigned int &nUniqueId)
+void CHttpServerApp::SendErrHttpRspByUniqueId(int code, const string &reason, unsigned int &nUniqueId)
 {
     map<unsigned int, unsigned long long>::iterator it = m_mapUniqueId.find(nUniqueId);
     if(it == m_mapUniqueId.end())
     {
-        LogError("CAccessServerApp::SendErrHttpRspByUniqueId(can not find unique id, unique id :%d)", nUniqueId);
+        LogError("CHttpServerApp::SendErrHttpRspByUniqueId(can not find unique id, unique id :%d)", nUniqueId);
         return;
     }
 
@@ -964,7 +963,7 @@ void CAccessServerApp::SendErrHttpRspByUniqueId(int code, const string &reason, 
     m_mapUniqueId.erase(it);
 }
 
-void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 {
 	ReqJobCreateList reqPacket;
 	ReqJobCreate *packet = reqPacket.Append();
@@ -974,7 +973,7 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 	try{
 
 		if (req["json_job"].isNull() ){
-            LogWarning("CAccessServerApp::ReqCreate(Json:: json_job is null, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreate(Json:: json_job is null, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'json_job',error:'empty value'", nUniqueId);
 			return;
 		}
@@ -982,7 +981,7 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 		Json::Value &request = req["json_job"];
 
 		if (!request.isObject()){
-            LogWarning("CAccessServerApp::ReqCreate(Json:: json_job is not a object, flow id: %u)",  nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreate(Json:: json_job is not a object, flow id: %u)",  nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'json_job',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -992,7 +991,7 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 			packet->clientModule = request["client_module"].asInt();
 		}
 		else{
-            LogWarning("CAccessServerApp::ReqCreate(Json:: client_module is invalid, flow id: %u)",  nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreate(Json:: client_module is invalid, flow id: %u)",  nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'client_module',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -1001,14 +1000,14 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 		if(request.isMember("client_passwd") && request["client_passwd"].isString()){
 			passwd = request["client_passwd"].asString();
 		} else {
-            LogWarning("CAccessServerApp::ReqCreate(Json:: client_passwd is invalid, flow id: %u)",  nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreate(Json:: client_passwd is invalid, flow id: %u)",  nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'client_passwd',error:'invalid value'", nUniqueId);
 			return;
 		}
 
 
 		if (!ClientModuleAuth((int)(packet->clientModule), passwd)){
-            LogWarning("CAccessServerApp::ReqCreate(client_passwd is not correct, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreate(client_passwd is not correct, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(ACCESS_DENIED,ACCESS_DENIED_REASON +  "param:'client_passwd',error:'incorrect password'", nUniqueId);
 			return;
 		}
@@ -1021,12 +1020,12 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 			if (ret != -1)
 				packet->flag = (int)(packet->flag) | ret;
 			else {
-                LogWarning("CAccessServerApp::ReqCreate(run_mode is invalid, flow id: %u)", nUniqueId);
+                LogWarning("CHttpServerApp::ReqCreate(run_mode is invalid, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'run_mode',error:'invalid value'", nUniqueId);
 				return;
 			}
 		} else if (!request["run_mode"].isNull()) {
-            LogWarning("CAccessServerApp::ReqCreate(run_mode is not a string, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreate(run_mode is not a string, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'run_mode',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -1038,13 +1037,13 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 				if (ret != -1)
 					packet->flag = (int)(packet->flag) | ret;
 				else {
-                    LogWarning("CAccessServerApp::ReqCreate(delete_mode is invalid, flow id: %u)", nUniqueId);
+                    LogWarning("CHttpServerApp::ReqCreate(delete_mode is invalid, flow id: %u)", nUniqueId);
                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'delete_mode',error:'invalid value'", nUniqueId);
 					return;
 				}
 
 			} else if (!request["delete_mode"].isNull()) {
-                LogWarning("CAccessServerApp::ReqCreate(delete_mode is not a string, flow id: %u)", nUniqueId);
+                LogWarning("CHttpServerApp::ReqCreate(delete_mode is not a string, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON +  "param:'delete_mode',error:'invalid value'", nUniqueId);
 				return;
 			}
@@ -1056,13 +1055,13 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 				if (ret != -1)
 					packet->flag = (int)(packet->flag) | ret;
 				else {
-                    LogWarning("CAccessServerApp::ReqCreate(now_run is invalid, flow id: %u)", nUniqueId);
+                    LogWarning("CHttpServerApp::ReqCreate(now_run is invalid, flow id: %u)", nUniqueId);
                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'now_run',error:'invalid value'", nUniqueId);
 					return;
 				}
 
 			} else if (!request["now_run"].isNull()){
-                LogWarning("CAccessServerApp::ReqCreate(now_run is not a string, flow id: %u)", nUniqueId);
+                LogWarning("CHttpServerApp::ReqCreate(now_run is not a string, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'now_run',error:'invalid value'", nUniqueId);
 				return;
 			} else {
@@ -1106,7 +1105,7 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 
 		//检查step_list
 		if (request["step_list"].isNull()){ 
-            LogWarning("CAccessServerApp::ReqCreate(step_list is null, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreate(step_list is null, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'empty value'", nUniqueId);
 			return;
 		} else if ( request["step_list"].isArray() ) {
@@ -1122,11 +1121,11 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 
 					//检查type
 					if (!step.isObject()){
-                        LogWarning("CAccessServerApp::ReqCreate(step %u is not object, flow id: %u)", (unsigned int)i, nUniqueId);
+                        LogWarning("CHttpServerApp::ReqCreate(step %u is not object, flow id: %u)", (unsigned int)i, nUniqueId);
                         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'invalid value'", nUniqueId);
 						return;
 					} else if ( step["type"].isNull()) {
-                        LogWarning("CAccessServerApp::ReqCreate('type' of step %u is null, flow id: %u)", (unsigned int)i, nUniqueId);
+                        LogWarning("CHttpServerApp::ReqCreate('type' of step %u is null, flow id: %u)", (unsigned int)i, nUniqueId);
                         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list type',error:'empty value'", nUniqueId);
 						return ;
 					} else if (step["type"].isInt()) {
@@ -1143,13 +1142,13 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 										nCmdIp = 0;
 								}
 								if (nCmdIp == 0) {
-                                    LogWarning("CAccessServerApp::ReqCreate('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list ip',error:'invalid value'", nUniqueId);
 									return;
 								}
 
 							}else {
-                                LogWarning("CAccessServerApp::ReqCreate('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list ip',error:'value is not string'", nUniqueId);
 								return ;
 							}
@@ -1177,7 +1176,7 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 								if ( ret != -1 )
 									cmd->flag = (int)(cmd->flag) | ret;
 								else {
-                                    LogWarning("CAccessServerApp::ReqCreate('not_log' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreate('not_log' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list not_log',error:'value is not int'", nUniqueId);
 									return ;
 								}
@@ -1189,7 +1188,7 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 								if ( ret != -1 )
 									cmd->flag = (int)(cmd->flag) | ret;
 								else {
-                                    LogWarning("CAccessServerApp::ReqCreate('not_getout' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreate('not_getout' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list not_getout',error:'value is not int'", nUniqueId);
 									return ;
 								}
@@ -1201,7 +1200,7 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 								if ( ret != -1 )
 									cmd->flag = (int)(cmd->flag) | ret;
 								else {
-                                    LogWarning("CAccessServerApp::ReqCreate('not_geterr' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreate('not_geterr' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list not_geterr',error:'value is not int'", nUniqueId);
 									return ;
 								}
@@ -1210,7 +1209,7 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 							if(step["buf_size"].isInt()){
 								int nBufSize = step["buf_size"].asInt();
 								if (g_nMaxStdOut < nBufSize ){
-                                    LogWarning("CAccessServerApp::ReqCreate('buf_size' of step %u is greater than 6M, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreate('buf_size' of step %u is greater than 6M, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list buf_size',error:'value is too large(>6M)'", nUniqueId);
 									return;
 								}
@@ -1261,14 +1260,14 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 								}
 
 								if (nCmdIp == 0){
-                                    LogWarning("CAccessServerApp::ReqCreate('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list src_ip',error:'invalid ip'", nUniqueId);
 									return ;
 								} else 
 									file->srcAgentId = ip;
 
 							} else {
-                                LogWarning("CAccessServerApp::ReqCreate('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list src_ip',error:'value is not string'", nUniqueId);
 								return ;
 							}
@@ -1276,7 +1275,7 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 							if(step["src_path"].isString()){
 								file->srcFile = step["src_path"].asString().c_str();
 							} else {
-                                LogWarning("CAccessServerApp::ReqCreate('src_path' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                LogWarning("CHttpServerApp::ReqCreate('src_path' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list src_path',error:'empty value'", nUniqueId);
 								return ;
 							}
@@ -1294,13 +1293,13 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 								}
 
 								if (nCmdIp == 0){
-                                    LogWarning("CAccessServerApp::ReqCreate('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list dest_ip',error:'invalid ip'", nUniqueId);
 									return ;
 								}
 								else file->dstAgentId = ip;
 							} else {
-                                LogWarning("CAccessServerApp::ReqCreate('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list dest_ip',error:'value is not string'", nUniqueId);
 								return ;
 							}
@@ -1308,7 +1307,7 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 							if(step["dest_path"].isString() ){
 								file->dstPath = step["dest_path"].asString().c_str();
 							} else {
-                                LogWarning("CAccessServerApp::ReqCreate('dest_path' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                LogWarning("CHttpServerApp::ReqCreate('dest_path' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list dest_path',error:'empty value'", nUniqueId);
 								return ;
 							}
@@ -1346,19 +1345,19 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 						}
 
 					} else {
-                        LogWarning("CAccessServerApp::ReqCreate('type' of step %u is not int, flow id: %u)", (unsigned int)i, nUniqueId);
+                        LogWarning("CHttpServerApp::ReqCreate('type' of step %u is not int, flow id: %u)", (unsigned int)i, nUniqueId);
                         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list type',error:'invalid value'", nUniqueId);
 						return ;
 					}
 				}
 			}
 		} else {
-            LogWarning("CAccessServerApp::ReqCreate(step_list is not a array, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreate(step_list is not a array, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'value is not array'", nUniqueId);
 			return ;
 		}
 	}catch(exception &e){
-        LogWarning("CAccessServerApp::ReqCreate(catch a exception, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqCreate(catch a exception, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  e.what(), nUniqueId);
 		return;
 	}
@@ -1403,7 +1402,7 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 
         int ret = SendPacketToDCC(reqPacket, Ajs::reqJobCreateListCid, nUniqueId, server_info.first, server_info.second);
 		if (ret != 0){
-            LogWarning("CAccessServerApp::ReqCreate(SendPacketToDCC failed! flow id: %u)",
+            LogWarning("CHttpServerApp::ReqCreate(SendPacketToDCC failed! flow id: %u)",
                     nUniqueId);
             SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
             if (g_strProxyType == "create_sync" || g_strProxyType == "create_sync2"){
@@ -1415,14 +1414,14 @@ void CAccessServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 			return;
 		}
 	} else {
-        LogWarning("CAccessServerApp::ReqCreate(get job server by client module failed!, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqCreate(get job server by client module failed!, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, "Service Unavailable", nUniqueId);
 		return;
 	}
-    LogDebug("CAccessServerApp::ReqCreate(create ok! flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::ReqCreate(create ok! flow id: %u)", nUniqueId);
 }
 
-bool CAccessServerApp::GetJobServerByClientModule(int client_module, pair<unsigned int, unsigned short> &server_info)
+bool CHttpServerApp::GetJobServerByClientModule(int client_module, pair<unsigned int, unsigned short> &server_info)
 {
 
 	map<int, unsigned short>::iterator it = m_clientModuleSpecializedJobServer.find(client_module);
@@ -1438,16 +1437,16 @@ bool CAccessServerApp::GetJobServerByClientModule(int client_module, pair<unsign
 			server_info.first = it1->second.first;
 			server_info.second = it1->second.second;
 		} else {
-			LogWarning("CAccessServerApp::GetJobServerByClientModule(invalid job_server_id, client_module: %d)", client_module);
+			LogWarning("CHttpServerApp::GetJobServerByClientModule(invalid job_server_id, client_module: %d)", client_module);
 			return false;
 		}
 	}
 	return true;
 }
 
-bool CAccessServerApp::GetAJobServerInScheduler(pair<unsigned int, unsigned short> & host)
+bool CHttpServerApp::GetAJobServerInScheduler(pair<unsigned int, unsigned short> & host)
 {
-	LogLowest("CAccessServerApp::GetAJobServerInScheduler()");
+	LogLowest("CHttpServerApp::GetAJobServerInScheduler()");
 	unsigned short job_server_id;
 	if (m_pScheduler->GetAJobServer(job_server_id)){
 		map<unsigned short, pair<unsigned int, unsigned short> >::iterator it1 = m_allJobServer_map.find(job_server_id);
@@ -1455,20 +1454,20 @@ bool CAccessServerApp::GetAJobServerInScheduler(pair<unsigned int, unsigned shor
 			host.first = it1->second.first;
 			host.second = it1->second.second;
 		} else {
-			LogDebug("CAccessServerApp::GetAJobServerInScheduler(invalid job_server_id)");
+			LogDebug("CHttpServerApp::GetAJobServerInScheduler(invalid job_server_id)");
 			return false;
 		}
 
 	} else {
-		LogDebug("CAccessServerApp::GetAJobServerInScheduler(there is no job server)");	
+		LogDebug("CHttpServerApp::GetAJobServerInScheduler(there is no job server)");	
 		return false;
 	}
 	return true;
 }
 
-bool CAccessServerApp::GetAllJobServerInScheduler(vector<pair<unsigned int, unsigned short> > & hosts)
+bool CHttpServerApp::GetAllJobServerInScheduler(vector<pair<unsigned int, unsigned short> > & hosts)
 {
-	LogLowest("CAccessServerApp::GetAllJobServerInScheduler()");
+	LogLowest("CHttpServerApp::GetAllJobServerInScheduler()");
 	hosts.clear();
 
 	vector<unsigned short> job_servers_id;
@@ -1485,7 +1484,7 @@ bool CAccessServerApp::GetAllJobServerInScheduler(vector<pair<unsigned int, unsi
 	return false;
 }
 
-bool CAccessServerApp::ClientModuleAuth(int client_module, const string &password)
+bool CHttpServerApp::ClientModuleAuth(int client_module, const string &password)
 {
 	CAutoLock lock(m_lock);
 	map<int, UserInfo>::iterator it = m_clientAuth_map.find(client_module);
@@ -1496,28 +1495,28 @@ bool CAccessServerApp::ClientModuleAuth(int client_module, const string &passwor
 	return false;
 }
 
-void CAccessServerApp::UpdateModuleAuth(const map<int, UserInfo> &infos)
+void CHttpServerApp::UpdateModuleAuth(const map<int, UserInfo> &infos)
 {
 	CAutoLock lock(m_lock);
 	m_clientAuth_map.clear();
 	m_clientAuth_map.insert(infos.begin(), infos.end());
 }
 
-bool CAccessServerApp::GetJobServerInfoById(unsigned short job_server_id, pair<unsigned int, unsigned short> &info)
+bool CHttpServerApp::GetJobServerInfoById(unsigned short job_server_id, pair<unsigned int, unsigned short> &info)
 {
-	LogLowest("CAccessServerApp::GetJobServerInfoById()");
+	LogLowest("CHttpServerApp::GetJobServerInfoById()");
 	map<unsigned short, pair<unsigned int, unsigned short> >::iterator it = m_allJobServer_map.find(job_server_id);
 	if ( it != m_allJobServer_map.end()) {
 		info.first = it->second.first;
 		info.second = it->second.second;
 	} else {
-		LogLowest("CAccessServerApp::GetJobServerInfoById(job_server_id is invalid: %d)", job_server_id);
+		LogLowest("CHttpServerApp::GetJobServerInfoById(job_server_id is invalid: %d)", job_server_id);
 		return false;
 	}
 	return true;
 }
 
-void CAccessServerApp::ReqSetAction(Json::Value &request, unsigned int nUniqueId)
+void CHttpServerApp::ReqSetAction(Json::Value &request, unsigned int nUniqueId)
 {
 	unsigned short js_id = 0;
     unsigned int nJobId = 0;
@@ -1530,7 +1529,7 @@ void CAccessServerApp::ReqSetAction(Json::Value &request, unsigned int nUniqueId
 		string tmpStrJobId = ObjToString<unsigned long long>(ullJobId);
 
 		if (Trim(strJobId) != Trim(tmpStrJobId)){
-            LogWarning("CAccessServerApp::ReqSetAction(trans job_id failed, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqSetAction(trans job_id failed, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'job_id',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -1538,7 +1537,7 @@ void CAccessServerApp::ReqSetAction(Json::Value &request, unsigned int nUniqueId
 		js_id = (unsigned short)(ullJobId >> 56);
 		nJobId = (int)ullJobId ;
 	} else {
-        LogWarning("CAccessServerApp::ReqSetAction(job_id is not string, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqSetAction(job_id is not string, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'job_id',error:'invalid value'", nUniqueId);
 		return;
 	}
@@ -1549,12 +1548,12 @@ void CAccessServerApp::ReqSetAction(Json::Value &request, unsigned int nUniqueId
 		if (ret != -1){
 			nAction = ret;
 		} else {
-            LogWarning("CAccessServerApp::ReqSetAction(op is invalid, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqSetAction(op is invalid, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'op',error:'invalid value'", nUniqueId);
 			return;
 		}
 	}else {
-        LogWarning("CAccessServerApp::ReqSetAction(op is not string, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqSetAction(op is not string, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'op',error:'invalid value'", nUniqueId);
 		return;
 	}
@@ -1566,7 +1565,7 @@ void CAccessServerApp::ReqSetAction(Json::Value &request, unsigned int nUniqueId
 
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(js_id, server_info)){
-        LogWarning("CAccessServerApp::ReqSetAction(get server info failed, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqSetAction(get server info failed, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
 		return;
 	}
@@ -1594,7 +1593,7 @@ void CAccessServerApp::ReqSetAction(Json::Value &request, unsigned int nUniqueId
             );
 
     if ( ret != 0 ){
-	    LogDebug("CAccessServerApp::ReqSetAction(Ajs::reqJobSetActionListCid, SendPacketToDCC() failed! job id: %u, job server id: %hu flow id: %u)",
+	    LogDebug("CHttpServerApp::ReqSetAction(Ajs::reqJobSetActionListCid, SendPacketToDCC() failed! job id: %u, job server id: %hu flow id: %u)",
                 nJobId, js_id, nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
         return;
@@ -1603,11 +1602,11 @@ void CAccessServerApp::ReqSetAction(Json::Value &request, unsigned int nUniqueId
     //发送成功，将客户端信息加入map
     m_mapAsyncReqInfo[nUniqueId] = info;
 
-	LogDebug("CAccessServerApp::ReqSetAction(set action ok! job id: %u, job server id: %hu flow id: %u)",
+	LogDebug("CHttpServerApp::ReqSetAction(set action ok! job id: %u, job server id: %hu flow id: %u)",
             nJobId, js_id, nUniqueId);
 }
 
-void CAccessServerApp::ReqUpdate(Json::Value &request, unsigned int nUniqueId)
+void CHttpServerApp::ReqUpdate(Json::Value &request, unsigned int nUniqueId)
 {
 	unsigned short js_id = 0;
     unsigned int nJobId = 0;
@@ -1621,7 +1620,7 @@ void CAccessServerApp::ReqUpdate(Json::Value &request, unsigned int nUniqueId)
 		string tmpStrJobId = ObjToString<unsigned long long>(ullJobId);
 
 		if (Trim(strJobId) != Trim(tmpStrJobId)){
-            LogWarning("CAccessServerApp::ReqUpdate(trans job_id failed, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqUpdate(trans job_id failed, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'job_id',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -1629,7 +1628,7 @@ void CAccessServerApp::ReqUpdate(Json::Value &request, unsigned int nUniqueId)
 		js_id = (unsigned short)(ullJobId >> 56);
 		nJobId = (int)ullJobId ;
 	} else {
-        LogWarning("CAccessServerApp::ReqUpdate(job_id is not string, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqUpdate(job_id is not string, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'job_id',error:'empty value'", nUniqueId);
 		return;
 	}
@@ -1643,13 +1642,13 @@ void CAccessServerApp::ReqUpdate(Json::Value &request, unsigned int nUniqueId)
 			nField = ret;
 		}
 		else {
-            LogWarning("CAccessServerApp::ReqUpdate(field is invalid, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqUpdate(field is invalid, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'field',error:'invalid value'", nUniqueId);
 			return;
 		}
 
 	}else {
-        LogWarning("CAccessServerApp::ReqUpdate(Json: field is null, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqUpdate(Json: field is null, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'field',error:'empty value'", nUniqueId);
 		return;
 	}
@@ -1671,7 +1670,7 @@ void CAccessServerApp::ReqUpdate(Json::Value &request, unsigned int nUniqueId)
 	
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(js_id, server_info)){
-        LogWarning("CAccessServerApp::ReqUpdate(get server info failed, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqUpdate(get server info failed, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
 		return;
 	}
@@ -1701,7 +1700,7 @@ void CAccessServerApp::ReqUpdate(Json::Value &request, unsigned int nUniqueId)
             );
 
     if ( ret != 0 ){
-        LogDebug("CAccessServerApp::ReqUpdate(SendPacketToDCC failed! job id: %u, job server id: %hu, flow id: %u)",
+        LogDebug("CHttpServerApp::ReqUpdate(SendPacketToDCC failed! job id: %u, job server id: %hu, flow id: %u)",
             nJobId, js_id, nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
         return;
@@ -1710,11 +1709,11 @@ void CAccessServerApp::ReqUpdate(Json::Value &request, unsigned int nUniqueId)
     //发送成功，将客户端信息加入map
     m_mapAsyncReqInfo[nUniqueId] = info;
 
-	LogDebug("CAccessServerApp::ReqUpdate(update ok! job id: %u, job server id: %hu, flow id: %u)",
+	LogDebug("CHttpServerApp::ReqUpdate(update ok! job id: %u, job server id: %hu, flow id: %u)",
             nJobId, js_id, nUniqueId);
 }
 
-void CAccessServerApp::ReqQuery(Json::Value &request, unsigned int nUniqueId)
+void CHttpServerApp::ReqQuery(Json::Value &request, unsigned int nUniqueId)
 {
 	unsigned short js_id = 0;
     unsigned int nJobId = 0;
@@ -1726,7 +1725,7 @@ void CAccessServerApp::ReqQuery(Json::Value &request, unsigned int nUniqueId)
 		string tmpStrJobId = ObjToString<unsigned long long>(ullJobId);
 
 		if (Trim(strJobId) != Trim(tmpStrJobId)){
-            LogWarning("CAccessServerApp::ReqQuery(trans job_id failed, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqQuery(trans job_id failed, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'job_id',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -1734,7 +1733,7 @@ void CAccessServerApp::ReqQuery(Json::Value &request, unsigned int nUniqueId)
 		js_id = (unsigned short)(ullJobId >> 56);
 		nJobId = (int)ullJobId ;
 	} else {
-        LogWarning("CAccessServerApp::ReqQuery(job_id is null, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqQuery(job_id is null, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'job_id',error:'empty value'", nUniqueId);
 		return;
 	}
@@ -1747,7 +1746,7 @@ void CAccessServerApp::ReqQuery(Json::Value &request, unsigned int nUniqueId)
 
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(js_id, server_info)){
-        LogWarning("CAccessServerApp::ReqQuery(get server info failed, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqQuery(get server info failed, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
 		return;
 	}
@@ -1785,10 +1784,10 @@ void CAccessServerApp::ReqQuery(Json::Value &request, unsigned int nUniqueId)
     //发送成功，将客户端信息加入map
     m_mapAsyncReqInfo[nUniqueId] = info;
 
-    LogDebug("CAccessServerApp::ReqQuery(update ok! job id: %u, job server id: %hu flow id: %u)",nJobId, js_id, nUniqueId);
+    LogDebug("CHttpServerApp::ReqQuery(update ok! job id: %u, job server id: %hu flow id: %u)",nJobId, js_id, nUniqueId);
 }
 
-void CAccessServerApp::ReqQueryField(Json::Value &request, unsigned int nUniqueId)
+void CHttpServerApp::ReqQueryField(Json::Value &request, unsigned int nUniqueId)
 {
 	unsigned short js_id = 0;
     unsigned int nJobId = 0;
@@ -1801,7 +1800,7 @@ void CAccessServerApp::ReqQueryField(Json::Value &request, unsigned int nUniqueI
 		string tmpStrJobId = ObjToString<unsigned long long>(ullJobId);
 
 		if (Trim(strJobId) != Trim(tmpStrJobId)){
-            LogWarning("CAccessServerApp::ReqQueryField(trans job_id failed, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqQueryField(trans job_id failed, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'job_id',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -1809,7 +1808,7 @@ void CAccessServerApp::ReqQueryField(Json::Value &request, unsigned int nUniqueI
 		js_id = (unsigned short)(ullJobId >> 56);
 		nJobId = (int)ullJobId ;
 	} else {
-        LogWarning("CAccessServerApp::ReqQueryField(job_id is not string, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqQueryField(job_id is not string, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'job_id',error:'empty value'", nUniqueId);
 		return;
 	}
@@ -1851,14 +1850,14 @@ void CAccessServerApp::ReqQueryField(Json::Value &request, unsigned int nUniqueI
 		else
 			nStep = g_nDefaultStep;
 	} else {
-        LogWarning("CAccessServerApp::ReqQueryField(field is not string, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqQueryField(field is not string, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'field',error:'empty value'", nUniqueId);
 		return;
 	}
 
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(js_id, server_info)){
-        LogWarning("CAccessServerApp::ReqQueryField(get server info failed, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqQueryField(get server info failed, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
 		return;
 	}
@@ -1891,7 +1890,7 @@ void CAccessServerApp::ReqQueryField(Json::Value &request, unsigned int nUniqueI
             );
 
     if ( ret != 0 ){
-	    LogDebug("CAccessServerApp::ReqQueryField(SendPacketToDCC failed! job id: %u, job server id: %hu flow id: %u)",
+	    LogDebug("CHttpServerApp::ReqQueryField(SendPacketToDCC failed! job id: %u, job server id: %hu flow id: %u)",
                  nJobId, js_id, nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
         return;
@@ -1900,17 +1899,17 @@ void CAccessServerApp::ReqQueryField(Json::Value &request, unsigned int nUniqueI
     //发送成功，将客户端信息加入map
     m_mapAsyncReqInfo[nUniqueId] = info;
 
-	LogDebug("CAccessServerApp::ReqQueryField(update ok! job id: %u, job server id: %hu flow id: %u)",
+	LogDebug("CHttpServerApp::ReqQueryField(update ok! job id: %u, job server id: %hu flow id: %u)",
             nJobId, js_id, nUniqueId);
 }
 
-void CAccessServerApp::ReqQuerySelect(Json::Value &request, unsigned int nUniqueId)
+void CHttpServerApp::ReqQuerySelect(Json::Value &request, unsigned int nUniqueId)
 {
     int nClientModule = 0;
 	if(request["client_module"].isInt()){
 		nClientModule = request["client_module"].asInt();
 	} else { 
-        LogWarning("CAccessServerApp::ReqQuerySelect(client_module is not int, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqQuerySelect(client_module is not int, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'client_module',error:'invalid value'", nUniqueId);
 		return;
 	}
@@ -1972,7 +1971,7 @@ void CAccessServerApp::ReqQuerySelect(Json::Value &request, unsigned int nUnique
 		int nCurPage = request["cur_page"].asInt();
 		if (nCurPage == 0){
 			//限制cur_page不能为0，用户意图为输出第一页
-            LogWarning("CAccessServerApp::ReqQuerySelect(cur_page is invalid, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqQuerySelect(cur_page is invalid, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'cur_page',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -1982,7 +1981,7 @@ void CAccessServerApp::ReqQuerySelect(Json::Value &request, unsigned int nUnique
 		selectField_set.insert(value);
 	} else {
 		//用户不能不指定cur_page
-        LogWarning("CAccessServerApp::ReqQuerySelect(cur_page is invalid, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqQuerySelect(cur_page is invalid, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'cur_page',error:'invalid value'", nUniqueId);
 		return;
 	}
@@ -1991,7 +1990,7 @@ void CAccessServerApp::ReqQuerySelect(Json::Value &request, unsigned int nUnique
 		int nPerPage = request["per_page"].asInt();
 		if (nPerPage > g_nMaxPerPage) {
 			//限制每页的记录数
-            LogWarning("CAccessServerApp::ReqQuerySelect(per_page is too large, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqQuerySelect(per_page is too large, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'per_page',error:'too large value'", nUniqueId);
 			return;
 		}
@@ -2001,7 +2000,7 @@ void CAccessServerApp::ReqQuerySelect(Json::Value &request, unsigned int nUnique
 		selectField_set.insert(value);
 	} else {
 		//用户不能不指定per_page
-        LogWarning("CAccessServerApp::ReqQuerySelect(per_page is invalid, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqQuerySelect(per_page is invalid, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'per_page',error:'invalid value'", nUniqueId);
 		return;
 	}
@@ -2051,7 +2050,7 @@ void CAccessServerApp::ReqQuerySelect(Json::Value &request, unsigned int nUnique
 	}
 }
 
-void CAccessServerApp::ReqDelete(Json::Value &request, unsigned int nUniqueId)
+void CHttpServerApp::ReqDelete(Json::Value &request, unsigned int nUniqueId)
 {
 	unsigned short js_id = 0;
     unsigned int nJobId = 0;
@@ -2061,7 +2060,7 @@ void CAccessServerApp::ReqDelete(Json::Value &request, unsigned int nUniqueId)
 		string tmpStrJobId = ObjToString<unsigned long long>(ullJobId);
 
 		if (Trim(strJobId) != Trim(tmpStrJobId)){
-            LogWarning("CAccessServerApp::ReqDelete(trans job id failed, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqDelete(trans job id failed, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'job_id',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -2069,14 +2068,14 @@ void CAccessServerApp::ReqDelete(Json::Value &request, unsigned int nUniqueId)
 		js_id = (unsigned short)(ullJobId >> 56);
 		nJobId = (int)ullJobId ;
 	} else {
-        LogWarning("CAccessServerApp::ReqDelete(job id is not string, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqDelete(job id is not string, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'job_id',error:'empty value'", nUniqueId);
 		return;
 	}
 
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(js_id, server_info)){
-        LogWarning("CAccessServerApp::ReqDelete(get server info failed, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqDelete(get server info failed, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
 		return;
 	}
@@ -2109,14 +2108,14 @@ void CAccessServerApp::ReqDelete(Json::Value &request, unsigned int nUniqueId)
     //发送成功，将客户端信息加入map
     m_mapAsyncReqInfo[nUniqueId] = info;
 
-    LogDebug("CAccessServerApp::ReqDelete(update ok! job id: %u, job server id: %hu flow id: %u)",nJobId, js_id, nUniqueId);
+    LogDebug("CHttpServerApp::ReqDelete(update ok! job id: %u, job server id: %hu flow id: %u)",nJobId, js_id, nUniqueId);
 }
 
 //2.0.0版本新增批量接口
-void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
 {
     if (req["json_job_array"].isNull()){
-        LogWarning("CAccessServerApp::ReqCreateBatch(json_job_array is null, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqCreateBatch(json_job_array is null, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'json_job_array', error:'empty value", nUniqueId);
         return;
     }
@@ -2124,14 +2123,14 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
     Json::Value &json_job = req["json_job_array"];
 
     if (!json_job.isArray()){
-        LogWarning("CAccessServerApp::ReqCreateBatch(json_job is not array, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqCreateBatch(json_job is not array, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'json_job', error:'invalid value", nUniqueId);
         return;
     }
 
     //限制批量创建任务的数量
     if (json_job.size() > (unsigned int)g_nMaxCreateBatchCount){
-        LogWarning("CAccessServerApp::ReqCreateBatch(create too many jobs (> %d), flow id: %u)", g_nMaxCreateBatchCount, nUniqueId);
+        LogWarning("CHttpServerApp::ReqCreateBatch(create too many jobs (> %d), flow id: %u)", g_nMaxCreateBatchCount, nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'json_job',error:'create too many jobs'", nUniqueId);
     	return;
     }
@@ -2146,7 +2145,7 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
         packet->flag = 0;
 
         if (!request.isObject()){
-            LogWarning("CAccessServerApp::ReqCreateBatch(json_job_array is not a object, flow id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
+            LogWarning("CHttpServerApp::ReqCreateBatch(json_job_array is not a object, flow id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'json_job',error:'is not object'", nUniqueId);
             return;
         }
@@ -2158,13 +2157,13 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
             if ( i == 0 )
             	nClientModule = (int)packet->clientModule;
             else if (nClientModule != (int)packet->clientModule){
-                LogWarning("CAccessServerApp::ReqCreateBatchBatch(client_module is not consistent, flow id: %u, client id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
+                LogWarning("CHttpServerApp::ReqCreateBatchBatch(client_module is not consistent, flow id: %u, client id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'client_module',error:'client_module is not consistent', index of array: " + IntToString((unsigned int)i), nUniqueId);
                 return;
             }
         }
         else{
-            LogWarning("CAccessServerApp::ReqCreateBatchBatch(client_module is invalid, flow id: %u, index of array: %u)", nUniqueId, (unsigned int)i);
+            LogWarning("CHttpServerApp::ReqCreateBatchBatch(client_module is invalid, flow id: %u, index of array: %u)", nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'client_module',error:'invalid value', index of array: " + IntToString((unsigned int)i), nUniqueId);
             return;
         }
@@ -2175,19 +2174,19 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
             if ( 0 == i )
             	strPassWd = passwd;
             else if (strPassWd != passwd) {
-                LogWarning("CAccessServerApp::ReqCreateBatchBatch(passwd is not consistent, flow id: %u, client id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
+                LogWarning("CHttpServerApp::ReqCreateBatchBatch(passwd is not consistent, flow id: %u, client id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'client_module',error:'passwd is not consistent', index of array: " + IntToString((unsigned int)i), nUniqueId);
                 return;
             }
         } else {
-            LogWarning("CAccessServerApp::ReqCreateBatch(client_passwd is invalid, flow id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
+            LogWarning("CHttpServerApp::ReqCreateBatch(client_passwd is invalid, flow id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'client_passwd',error:'invalid value', index of array: " + IntToString((unsigned int)i), nUniqueId);
             return;
         }
 
 
         if ( 0 == i && !ClientModuleAuth((int)(packet->clientModule), passwd)){
-            LogWarning("CAccessServerApp::ReqCreateBatch(client_passwd is not correct, flow id: %u, client id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
+            LogWarning("CHttpServerApp::ReqCreateBatch(client_passwd is not correct, flow id: %u, client id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(ACCESS_DENIED,ACCESS_DENIED_REASON +  "param:'client_passwd',error:'incorrect password', index of array: " + IntToString((unsigned int)i), nUniqueId);
             return;
         }
@@ -2200,12 +2199,12 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
             if (ret != -1)
                 packet->flag = (int)(packet->flag) | ret;
             else {
-                LogWarning("CAccessServerApp::ReqCreateBatch(run_mode is invalid, flow id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
+                LogWarning("CHttpServerApp::ReqCreateBatch(run_mode is invalid, flow id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'run_mode',error:'invalid value', index of array: " + IntToString((unsigned int)i), nUniqueId);
                 return;
             }
         } else if (!request["run_mode"].isNull()) {
-            LogWarning("CAccessServerApp::ReqCreateBatch(run_mode is not a string, flow id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
+            LogWarning("CHttpServerApp::ReqCreateBatch(run_mode is not a string, flow id: %u, index of array: %u)",  nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'run_mode',error:'invalid value', index of array: " + IntToString((unsigned int)i), nUniqueId);
             return;
         }
@@ -2217,13 +2216,13 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
             if (ret != -1)
                 packet->flag = (int)(packet->flag) | ret;
             else {
-                LogWarning("CAccessServerApp::ReqCreateBatch(delete_mode is invalid, flow id: %u)", nUniqueId);
+                LogWarning("CHttpServerApp::ReqCreateBatch(delete_mode is invalid, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'delete_mode',error:'invalid value'", nUniqueId);
                 return;
             }
 
         } else if (!request["delete_mode"].isNull()) {
-            LogWarning("CAccessServerApp::ReqCreateBatch(delete_mode is not a string, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateBatch(delete_mode is not a string, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON +  "param:'delete_mode',error:'invalid value'", nUniqueId);
             return;
         }
@@ -2235,13 +2234,13 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
             if (ret != -1)
                 packet->flag = (int)(packet->flag) | ret;
             else {
-                LogWarning("CAccessServerApp::ReqCreateBatch(now_run is invalid, flow id: %u)", nUniqueId);
+                LogWarning("CHttpServerApp::ReqCreateBatch(now_run is invalid, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'now_run',error:'invalid value'", nUniqueId);
                 return;
             }
 
         } else if (!request["now_run"].isNull()){
-            LogWarning("CAccessServerApp::ReqCreateBatch(now_run is not a string, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateBatch(now_run is not a string, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'now_run',error:'invalid value'", nUniqueId);
             return;
         } else {
@@ -2281,7 +2280,7 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
 
         //检查step_list
         if (request["step_list"].isNull()){ 
-            LogWarning("CAccessServerApp::ReqCreateBatch(step_list is null, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateBatch(step_list is null, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'empty value'", nUniqueId);
             return;
         } else if ( request["step_list"].isArray() ) {
@@ -2297,11 +2296,11 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
 
                     //检查type
                     if (!step.isObject()){
-                        LogWarning("CAccessServerApp::ReqCreateBatch(step %u is not object, flow id: %u)", (unsigned int)i, nUniqueId);
+                        LogWarning("CHttpServerApp::ReqCreateBatch(step %u is not object, flow id: %u)", (unsigned int)i, nUniqueId);
                         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'invalid value'", nUniqueId);
                         return;
                     } else if ( step["type"].isNull()) {
-                        LogWarning("CAccessServerApp::ReqCreateBatch('type' of step %u is null, flow id: %u)", (unsigned int)i, nUniqueId);
+                        LogWarning("CHttpServerApp::ReqCreateBatch('type' of step %u is null, flow id: %u)", (unsigned int)i, nUniqueId);
                         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list type',error:'empty value'", nUniqueId);
                         return ;
                     } else if (step["type"].isInt()) {
@@ -2318,13 +2317,13 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                                         nCmdIp = 0;
                                 }
                                 if (nCmdIp == 0) {
-                                    LogWarning("CAccessServerApp::ReqCreateBatch('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreateBatch('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list ip',error:'invalid value'", nUniqueId);
                                     return;
                                 }
 
                             }else {
-                                LogWarning("CAccessServerApp::ReqCreateBatch('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                LogWarning("CHttpServerApp::ReqCreateBatch('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list ip',error:'value is not string'", nUniqueId);
                                 return ;
                             }
@@ -2352,7 +2351,7 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                                 if ( ret != -1 )
                                     cmd->flag = (int)(cmd->flag) | ret;
                                 else {
-                                    LogWarning("CAccessServerApp::ReqCreateBatch('not_log' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreateBatch('not_log' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list not_log',error:'value is not int'", nUniqueId);
                                     return ;
                                 }
@@ -2364,7 +2363,7 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                                 if ( ret != -1 )
                                     cmd->flag = (int)(cmd->flag) | ret;
                                 else {
-                                    LogWarning("CAccessServerApp::ReqCreateBatch('not_getout' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreateBatch('not_getout' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list not_getout',error:'value is not int'", nUniqueId);
                                     return ;
                                 }
@@ -2376,7 +2375,7 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                                 if ( ret != -1 )
                                     cmd->flag = (int)(cmd->flag) | ret;
                                 else {
-                                    LogWarning("CAccessServerApp::ReqCreateBatch('not_geterr' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreateBatch('not_geterr' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list not_geterr',error:'value is not int'", nUniqueId);
                                     return ;
                                 }
@@ -2385,7 +2384,7 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                             if(step["buf_size"].isInt()){
                                 int nBufSize = step["buf_size"].asInt();
                                 if (g_nMaxStdOut < nBufSize ){
-                                    LogWarning("CAccessServerApp::ReqCreateBatch('buf_size' of step %u is greater than 6M, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreateBatch('buf_size' of step %u is greater than 6M, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list buf_size',error:'value is too large(>6M)'", nUniqueId);
                                     return;
                                 }
@@ -2436,14 +2435,14 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                                 }
 
                                 if (nCmdIp == 0){
-                                    LogWarning("CAccessServerApp::ReqCreateBatch('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreateBatch('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list src_ip',error:'invalid ip'", nUniqueId);
                                     return ;
                                 } else 
                                     file->srcAgentId = ip;
 
                             } else {
-                                LogWarning("CAccessServerApp::ReqCreateBatch('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                LogWarning("CHttpServerApp::ReqCreateBatch('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list src_ip',error:'value is not string'", nUniqueId);
                                 return ;
                             }
@@ -2451,7 +2450,7 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                             if(step["src_path"].isString()){
                                 file->srcFile = step["src_path"].asString().c_str();
                             } else {
-                                LogWarning("CAccessServerApp::ReqCreateBatch('src_path' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                LogWarning("CHttpServerApp::ReqCreateBatch('src_path' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list src_path',error:'empty value'", nUniqueId);
                                 return ;
                             }
@@ -2469,13 +2468,13 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                                 }
 
                                 if (nCmdIp == 0){
-                                    LogWarning("CAccessServerApp::ReqCreateBatch('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                    LogWarning("CHttpServerApp::ReqCreateBatch('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list dest_ip',error:'invalid ip'", nUniqueId);
                                     return ;
                                 }
                                 else file->dstAgentId = ip;
                             } else {
-                                LogWarning("CAccessServerApp::ReqCreateBatch('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                LogWarning("CHttpServerApp::ReqCreateBatch('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list dest_ip',error:'value is not string'", nUniqueId);
                                 return ;
                             }
@@ -2483,7 +2482,7 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                             if(step["dest_path"].isString() ){
                                 file->dstPath = step["dest_path"].asString().c_str();
                             } else {
-                                LogWarning("CAccessServerApp::ReqCreateBatch('dest_path' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
+                                LogWarning("CHttpServerApp::ReqCreateBatch('dest_path' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
                                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list dest_path',error:'empty value'", nUniqueId);
                                 return ;
                             }
@@ -2521,14 +2520,14 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                         }
 
                     } else {
-                        LogWarning("CAccessServerApp::ReqCreateBatch('type' of step %u is not int, flow id: %u)", (unsigned int)i, nUniqueId);
+                        LogWarning("CHttpServerApp::ReqCreateBatch('type' of step %u is not int, flow id: %u)", (unsigned int)i, nUniqueId);
                         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list type',error:'invalid value'", nUniqueId);
                         return ;
                     }
                 }
             }
         } else {
-            LogWarning("CAccessServerApp::ReqCreateBatch(step_list is not a array, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateBatch(step_list is not a array, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'value is not array'", nUniqueId);
             return ;
         }
@@ -2546,7 +2545,7 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
 
         int ret = SendPacketToDCC(reqPacket, Ajs::reqJobCreateListCid, nUniqueId, server_info.first, server_info.second);
     	if (ret != 0){
-    		LogWarning("CAccessServerApp::ReqCreateBatch(SendPacketToDCC() failed! flow id: %u)",
+    		LogWarning("CHttpServerApp::ReqCreateBatch(SendPacketToDCC() failed! flow id: %u)",
                     nUniqueId);
             SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
     		return;
@@ -2555,14 +2554,14 @@ void CAccessServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
     	//发送成功
         m_mapAsyncReqInfo[nUniqueId] = info;
     } else {
-        LogWarning("CAccessServerApp::ReqCreateBatch(get job server by client module failed! flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqCreateBatch(get job server by client module failed! flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, "Service Unavailable", nUniqueId);
 		return;
     }
-    LogDebug("CAccessServerApp::ReqCreateBatch(create batch ok! flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::ReqCreateBatch(create batch ok! flow id: %u)", nUniqueId);
 }
 
-void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
 {
 	ReqJobCreate2 packet;
 
@@ -2571,7 +2570,7 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
 	try{
 
 		if (req["json_job"].isNull() ){
-            LogWarning("CAccessServerApp::ReqCreateMany(Json:: json_job is null, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateMany(Json:: json_job is null, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'json_job',error:'empty value'", nUniqueId);
 			return;
 		}
@@ -2579,7 +2578,7 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
 		Json::Value &request = req["json_job"];
 
 		if (!request.isObject()){
-            LogWarning("CAccessServerApp::ReqCreateMany(Json:: json_job is not a object, flow id: %u)",  nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateMany(Json:: json_job is not a object, flow id: %u)",  nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'json_job',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -2589,7 +2588,7 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
 			packet.clientModule = request["client_module"].asInt();
 		}
 		else{
-            LogWarning("CAccessServerApp::ReqCreateMany(Json:: client_module is invalid, flow id: %u)",  nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateMany(Json:: client_module is invalid, flow id: %u)",  nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'client_module',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -2598,14 +2597,14 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
 		if(request.isMember("client_passwd") && request["client_passwd"].isString()){
 			passwd = request["client_passwd"].asString();
 		} else {
-            LogWarning("CAccessServerApp::ReqCreateMany(Json:: client_passwd is invalid, flow id: %u)",  nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateMany(Json:: client_passwd is invalid, flow id: %u)",  nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'client_passwd',error:'invalid value'", nUniqueId);
 			return;
 		}
 
 
 		if (!ClientModuleAuth((int)(packet.clientModule), passwd)){
-            LogWarning("CAccessServerApp::ReqCreateMany(client_passwd is not correct, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateMany(client_passwd is not correct, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(ACCESS_DENIED,ACCESS_DENIED_REASON +  "param:'client_passwd',error:'incorrect password'", nUniqueId);
 			return;
 		}
@@ -2618,12 +2617,12 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
 			if (ret != -1)
 				packet.flag = (int)(packet.flag) | ret;
 			else {
-                LogWarning("CAccessServerApp::ReqCreateMany(run_mode is invalid, flow id: %u)", nUniqueId);
+                LogWarning("CHttpServerApp::ReqCreateMany(run_mode is invalid, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'run_mode',error:'invalid value'", nUniqueId);
 				return;
 			}
 		} else if (!request["run_mode"].isNull()) {
-            LogWarning("CAccessServerApp::ReqCreateMany(run_mode is not a string, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateMany(run_mode is not a string, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'run_mode',error:'invalid value'", nUniqueId);
 			return;
 		}
@@ -2635,13 +2634,13 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
 				if (ret != -1)
 					packet.flag = (int)(packet.flag) | ret;
 				else {
-                    LogWarning("CAccessServerApp::ReqCreateMany(delete_mode is invalid, flow id: %u)", nUniqueId);
+                    LogWarning("CHttpServerApp::ReqCreateMany(delete_mode is invalid, flow id: %u)", nUniqueId);
                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'delete_mode',error:'invalid value'", nUniqueId);
 					return;
 				}
 
 			} else if (!request["delete_mode"].isNull()) {
-                LogWarning("CAccessServerApp::ReqCreateMany(delete_mode is not a string, flow id: %u)", nUniqueId);
+                LogWarning("CHttpServerApp::ReqCreateMany(delete_mode is not a string, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON +  "param:'delete_mode',error:'invalid value'", nUniqueId);
 				return;
 			}
@@ -2653,13 +2652,13 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
 				if (ret != -1)
 					packet.flag = (int)(packet.flag) | ret;
 				else {
-                    LogWarning("CAccessServerApp::ReqCreateMany(now_run is invalid, flow id: %u)", nUniqueId);
+                    LogWarning("CHttpServerApp::ReqCreateMany(now_run is invalid, flow id: %u)", nUniqueId);
                     SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'now_run',error:'invalid value'", nUniqueId);
 					return;
 				}
 
 			} else if (!request["now_run"].isNull()){
-                LogWarning("CAccessServerApp::ReqCreateMany(now_run is not a string, flow id: %u)", nUniqueId);
+                LogWarning("CHttpServerApp::ReqCreateMany(now_run is not a string, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'now_run',error:'invalid value'", nUniqueId);
 				return;
 			} else {
@@ -2698,7 +2697,7 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
 
 		//检查step
 		if (request["step"].isNull()){
-            LogWarning("CAccessServerApp::ReqCreateMany(step_list is null, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateMany(step_list is null, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'empty value'", nUniqueId);
 			return;
         } else if ( request["step"].isObject() ) {
@@ -2707,11 +2706,11 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
             JobStepShellCmd *cmd = packet.step;
             //检查type
             if (!step.isObject()){
-                LogWarning("CAccessServerApp::ReqCreateMany(step is not object, flow id: %u)", nUniqueId);
+                LogWarning("CHttpServerApp::ReqCreateMany(step is not object, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step',error:'invalid value'", nUniqueId);
                 return;
             } else if ( step["type"].isNull()) {
-                LogWarning("CAccessServerApp::ReqCreateMany('type' of step is null, flow id: %u)", nUniqueId);
+                LogWarning("CHttpServerApp::ReqCreateMany('type' of step is null, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step type',error:'empty value'", nUniqueId);
                 return ;
             } else if (step["type"].isInt()) {
@@ -2724,7 +2723,7 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
                         SplitDataToVector(vecIps, strTemp, ",");
 
                         if (vecIps.size() == 0){
-                        	LogWarning("CAccessServerApp::ReqCreateMany(ip_list is empty, flow id: %u)",
+                        	LogWarning("CHttpServerApp::ReqCreateMany(ip_list is empty, flow id: %u)",
                                     nUniqueId);
                             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step ip_list',error:'empty ip list'", nUniqueId);
                         	return;
@@ -2740,7 +2739,7 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
                                     nCmdIp = 0;
                             }
                             if (nCmdIp == 0) {
-                                LogWarning("CAccessServerApp::ReqCreateMany(invalid ip: %s, flow id: %u)",
+                                LogWarning("CHttpServerApp::ReqCreateMany(invalid ip: %s, flow id: %u)",
                                         strTempIp.c_str(), nUniqueId);
                                 continue;
                             }
@@ -2750,7 +2749,7 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
                         }
                         
                     }else {
-                        LogWarning("CAccessServerApp::ReqCreateMany('ip' of step is not string, flow id: %u, type: %d)", nUniqueId, type);
+                        LogWarning("CHttpServerApp::ReqCreateMany('ip' of step is not string, flow id: %u, type: %d)", nUniqueId, type);
                         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step ip',error:'value is not string'", nUniqueId);
                         return ;
                     }
@@ -2775,7 +2774,7 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
                         if ( ret != -1 )
                             cmd->flag = (int)(cmd->flag) | ret;
                         else {
-                            LogWarning("CAccessServerApp::ReqCreateMany('not_log' of step is invalid, flow id: %u, type: %d)", nUniqueId, type);
+                            LogWarning("CHttpServerApp::ReqCreateMany('not_log' of step is invalid, flow id: %u, type: %d)", nUniqueId, type);
                             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step not_log',error:'value is not int'", nUniqueId);
                             return ;
                         }
@@ -2787,7 +2786,7 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
                         if ( ret != -1 )
                             cmd->flag = (int)(cmd->flag) | ret;
                         else {
-                            LogWarning("CAccessServerApp::ReqCreateMany('not_getout' of step is invalid, flow id: %u, type: %d)", nUniqueId, type);
+                            LogWarning("CHttpServerApp::ReqCreateMany('not_getout' of step is invalid, flow id: %u, type: %d)", nUniqueId, type);
                             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step not_getout',error:'value is not int'", nUniqueId);
                             return ;
                         }
@@ -2799,7 +2798,7 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
                         if ( ret != -1 )
                             cmd->flag = (int)(cmd->flag) | ret;
                         else {
-                            LogWarning("CAccessServerApp::ReqCreateMany('not_geterr' of step is invalid, flow id: %u, type: %d)", nUniqueId, type);
+                            LogWarning("CHttpServerApp::ReqCreateMany('not_geterr' of step is invalid, flow id: %u, type: %d)", nUniqueId, type);
                             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step not_geterr',error:'value is not int'", nUniqueId);
                             return ;
                         }
@@ -2808,7 +2807,7 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
                     if(step["buf_size"].isInt()){
                         int nBufSize = step["buf_size"].asInt();
                         if (g_nMaxStdOut < nBufSize ){
-                            LogWarning("CAccessServerApp::ReqCreateMany('buf_size' of step is greater than 6M, flow id: %u, type: %d)", nUniqueId, type);
+                            LogWarning("CHttpServerApp::ReqCreateMany('buf_size' of step is greater than 6M, flow id: %u, type: %d)", nUniqueId, type);
                             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step buf_size',error:'value is too large(>6M)'", nUniqueId);
                             return;
                         }
@@ -2844,17 +2843,17 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
                 }
 
             } else {
-                LogWarning("CAccessServerApp::ReqCreateMany('type' of step is not int, flow id: %u)", nUniqueId);
+                LogWarning("CHttpServerApp::ReqCreateMany('type' of step is not int, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step type',error:'invalid value'", nUniqueId);
                 return ;
             }
         } else {
-            LogWarning("CAccessServerApp::ReqCreateMany(step_list is not a array, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqCreateMany(step_list is not a array, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step',error:'value is not array'", nUniqueId);
 			return ;
 		}
 	}catch(exception &e){
-        LogWarning("CAccessServerApp::ReqCreateMany(catch a exception, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqCreateMany(catch a exception, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  e.what(), nUniqueId);
 		return;
 	}
@@ -2877,21 +2876,21 @@ void CAccessServerApp::ReqCreateMany(Json::Value &req, unsigned int nUniqueId)
 
 		int ret = SendPacketToDCC(packet, Ajs::reqJobCreate2Cid, uniqueId, server_info.first, server_info.second);
 		if (ret != 0){
-			LogWarning("CAccessServerApp::ReqCreateMany(SendPacketToDCC failed! flow id: %u, unique id: %u)",
+			LogWarning("CHttpServerApp::ReqCreateMany(SendPacketToDCC failed! flow id: %u, unique id: %u)",
                     nUniqueId, uniqueId);
             SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
             m_mapAsyncReqInfo.erase(nUniqueId);
 			return;
 		}
 	} else {
-        LogWarning("CAccessServerApp::ReqCreateMany(get job server by client module failed!, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqCreateMany(get job server by client module failed!, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, "Service Unavailable", nUniqueId);
 		return;
 	}
-    LogDebug("CAccessServerApp::ReqCreateMany(create ok! flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::ReqCreateMany(create ok! flow id: %u)", nUniqueId);
 }
 
-void CAccessServerApp::ReqQueryTime(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqQueryTime(Json::Value &req, unsigned int nUniqueId)
 {
 	ReqJobQueryFieldList reqPacket;
 	ReqJobQueryField *packet = reqPacket.Append();
@@ -2906,7 +2905,7 @@ void CAccessServerApp::ReqQueryTime(Json::Value &req, unsigned int nUniqueId)
 
 		if (Trim(strJobId) != Trim(tmpStrJobId)) {
 			LogWarning(
-					"CAccessServerApp::ReqQueryTime(job id failed, flow id: %u)",
+					"CHttpServerApp::ReqQueryTime(job id failed, flow id: %u)",
                     nUniqueId);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -2919,7 +2918,7 @@ void CAccessServerApp::ReqQueryTime(Json::Value &req, unsigned int nUniqueId)
 		nJobId = (int) ullJobId;
 	} else {
 		LogWarning(
-				"CAccessServerApp::ReqQueryTime(job id is not string, flow id: %u)",
+				"CHttpServerApp::ReqQueryTime(job id is not string, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,
 				BAD_JSON_REQUEST_REASON + "param:'job_id',error:'empty value'",
@@ -2934,7 +2933,7 @@ void CAccessServerApp::ReqQueryTime(Json::Value &req, unsigned int nUniqueId)
 
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(js_id, server_info)){
-        LogWarning("CAccessServerApp::ReqQueryTime(get server info failed, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqQueryTime(get server info failed, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
 		return;
 	}
@@ -2958,25 +2957,25 @@ void CAccessServerApp::ReqQueryTime(Json::Value &req, unsigned int nUniqueId)
 			server_info.second);
 
 	if (ret != 0){
-		LogDebug("CAccessServerApp::ReqQueryTime(SendPacketToDCC failed! job id: %u, job server id: %hu, flow id: %u)",
+		LogDebug("CHttpServerApp::ReqQueryTime(SendPacketToDCC failed! job id: %u, job server id: %hu, flow id: %u)",
                 nJobId, js_id, nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
 		return;
 	}
 
     m_mapAsyncReqInfo[nUniqueId] = info;
-	LogDebug("CAccessServerApp::ReqQueryTime(query time ok. job id: %u, job server id: %hu, flow id: %u)",
+	LogDebug("CHttpServerApp::ReqQueryTime(query time ok. job id: %u, job server id: %hu, flow id: %u)",
             nJobId, js_id, nUniqueId);
 }
 
-void CAccessServerApp::ReqQueryAJSAgent(Json::Value &request, unsigned int nUniqueId)
+void CHttpServerApp::ReqQueryAJSAgent(Json::Value &request, unsigned int nUniqueId)
 {
 	ReqJobQueryAJSAgentList reqPacket;
 
 	if (request["ip_list"].isArray()) {
 		if (request["ip_list"].size() > (unsigned int)g_nMaxQueryAgentOnlineCount) {
 			LogWarning(
-					"CAccessServerApp::ReqQueryAJSAgent(ip list is too many, flow id: %u, max ip: %d)",
+					"CHttpServerApp::ReqQueryAJSAgent(ip list is too many, flow id: %u, max ip: %d)",
                     nUniqueId, g_nMaxQueryAgentOnlineCount);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -2991,7 +2990,7 @@ void CAccessServerApp::ReqQueryAJSAgent(Json::Value &request, unsigned int nUniq
 				*agent = IpStringToInt(ele.asString());
 			} else {
 				LogWarning(
-						"CAccessServerApp::ReqQueryAJSAgent(ip is not string, flow id: %u)",
+						"CHttpServerApp::ReqQueryAJSAgent(ip is not string, flow id: %u)",
                         nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,
 						BAD_JSON_REQUEST_REASON + "param:'ip',error:'invalid value'",
@@ -3001,7 +3000,7 @@ void CAccessServerApp::ReqQueryAJSAgent(Json::Value &request, unsigned int nUniq
 		}
 	} else {
 		LogWarning(
-				"CAccessServerApp::ReqQueryAJSAgent(ip list is not array, flow id: %u)",
+				"CHttpServerApp::ReqQueryAJSAgent(ip list is not array, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,
 				BAD_JSON_REQUEST_REASON + "param:'ip_list',error:'invalid value'",
@@ -3016,7 +3015,7 @@ void CAccessServerApp::ReqQueryAJSAgent(Json::Value &request, unsigned int nUniq
 
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerByClientModule(nClientModule, server_info)){
-        LogWarning("CAccessServerApp::ReqQueryAJSAgent(get server info failed, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqQueryAJSAgent(get server info failed, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
 		return;
 	}
@@ -3035,25 +3034,25 @@ void CAccessServerApp::ReqQueryAJSAgent(Json::Value &request, unsigned int nUniq
 			server_info.second);
 
 	if (ret != 0){
-		LogDebug("CAccessServerApp::ReqQueryAJSAgent(SendPacketToDCC failed! flow id: %u)",
+		LogDebug("CHttpServerApp::ReqQueryAJSAgent(SendPacketToDCC failed! flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
 		return;
 	}
 
     m_mapAsyncReqInfo[nUniqueId] = info;
-	LogDebug("CAccessServerApp::ReqQueryAJSAgent(query time ok. flow id: %u)",
+	LogDebug("CHttpServerApp::ReqQueryAJSAgent(query time ok. flow id: %u)",
             nUniqueId);
 }
 
-void CAccessServerApp::ReqQueryTSCAgent(Json::Value &request, unsigned int nUniqueId)
+void CHttpServerApp::ReqQueryTSCAgent(Json::Value &request, unsigned int nUniqueId)
 {
 	ReqJobQueryTSCAgentList reqPacket;
 
 	if (request["ip_list"].isArray()) {
 		if (request["ip_list"].size() > (unsigned int)g_nMaxQueryAgentOnlineCount) {
 			LogWarning(
-					"CAccessServerApp::ReqQueryTSCAgent(ip list is too many, flow id: %u, max ip: %d)",
+					"CHttpServerApp::ReqQueryTSCAgent(ip list is too many, flow id: %u, max ip: %d)",
                     nUniqueId, g_nMaxQueryAgentOnlineCount);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3068,7 +3067,7 @@ void CAccessServerApp::ReqQueryTSCAgent(Json::Value &request, unsigned int nUniq
 				*agent = IpStringToInt(ele.asString());
 			} else {
 				LogWarning(
-						"CAccessServerApp::ReqQueryTSCAgent(ip is not string, flow id: %u)",
+						"CHttpServerApp::ReqQueryTSCAgent(ip is not string, flow id: %u)",
                         nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,
 						BAD_JSON_REQUEST_REASON + "param:'ip',error:'invalid value'",
@@ -3078,7 +3077,7 @@ void CAccessServerApp::ReqQueryTSCAgent(Json::Value &request, unsigned int nUniq
 		}
 	} else {
 		LogWarning(
-				"CAccessServerApp::ReqQueryTSCAgent(ip list is not array, flow id: %u)",
+				"CHttpServerApp::ReqQueryTSCAgent(ip list is not array, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,
 				BAD_JSON_REQUEST_REASON + "param:'ip_list',error:'invalid value'",
@@ -3093,7 +3092,7 @@ void CAccessServerApp::ReqQueryTSCAgent(Json::Value &request, unsigned int nUniq
 
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(nClientModule, server_info)){
-        LogWarning("CAccessServerApp::ReqQueryTSCAgent(get server info failed, flow id: %u)", nUniqueId);
+        LogWarning("CHttpServerApp::ReqQueryTSCAgent(get server info failed, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
 		return;
 	}
@@ -3112,22 +3111,22 @@ void CAccessServerApp::ReqQueryTSCAgent(Json::Value &request, unsigned int nUniq
 			server_info.second);
 
 	if (ret != 0){
-		LogDebug("CAccessServerApp::ReqQueryTSCAgent(SendPacketToDCC failed! flow id: %u)",
+		LogDebug("CHttpServerApp::ReqQueryTSCAgent(SendPacketToDCC failed! flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
 		return;
 	}
 
     m_mapAsyncReqInfo[nUniqueId] = info;
-	LogDebug("CAccessServerApp::ReqQueryTSCAgent(query time ok. flow id: %u)",
+	LogDebug("CHttpServerApp::ReqQueryTSCAgent(query time ok. flow id: %u)",
             nUniqueId);
 }
 
-void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueId)
 {
 	if (req["op_json"].isNull()) {
 		LogWarning(
-				"CAccessServerApp::ReqSetActionBatch(op_json is null, flow id: %u)",
+				"CHttpServerApp::ReqSetActionBatch(op_json is null, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3141,7 +3140,7 @@ void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueI
 	//非数组
 	if (!op_json.isArray()) {
 		LogWarning(
-				"CAccessServerApp::ReqSetActionBatch(op_json is not array, flow id: %u)",
+				"CHttpServerApp::ReqSetActionBatch(op_json is not array, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3153,7 +3152,7 @@ void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueI
 	//空数组
 	if (op_json.size() == 0){
 		LogWarning(
-				"CAccessServerApp::ReqSetActionBatch(op_json is empty, flow id: %u)",
+				"CHttpServerApp::ReqSetActionBatch(op_json is empty, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3177,7 +3176,7 @@ void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueI
 
 		if (!request.isObject()) {
 			LogWarning(
-					"CAccessServerApp::ReqSetActionBatch(op_json is not object, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqSetActionBatch(op_json is not object, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3196,7 +3195,7 @@ void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueI
 
 			if (Trim(strJobId) != Trim(tmpStrJobId)) {
 				LogWarning(
-						"CAccessServerApp::ReqSetActionBatch(trans job_id failed, flow id: %u, index of array: %u)",
+						"CHttpServerApp::ReqSetActionBatch(trans job_id failed, flow id: %u, index of array: %u)",
                         nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(
 						BAD_JSON_REQUEST,
@@ -3215,7 +3214,7 @@ void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueI
 				nJsId = js_id;
 			else if ( js_id != nJsId ) {
 				LogWarning(
-						"CAccessServerApp::ReqSetActionBatch(job server id is not consistent, flow id: %u, index of array: %u)",
+						"CHttpServerApp::ReqSetActionBatch(job server id is not consistent, flow id: %u, index of array: %u)",
                         nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(
 						BAD_JSON_REQUEST,
@@ -3227,7 +3226,7 @@ void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueI
 			}
 		} else {
 			LogWarning(
-					"CAccessServerApp::ReqSetActionBatch(job_id is not string, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqSetActionBatch(job_id is not string, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3245,7 +3244,7 @@ void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueI
 				nAction = ret;
 			} else {
 				LogWarning(
-						"CAccessServerApp::ReqSetActionBatch(op is invalid, flow id: %u, index of array: %u)",
+						"CHttpServerApp::ReqSetActionBatch(op is invalid, flow id: %u, index of array: %u)",
                         nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(
 						BAD_JSON_REQUEST,
@@ -3257,7 +3256,7 @@ void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueI
 			}
 		} else {
 			LogWarning(
-					"CAccessServerApp::ReqSetActionBatch(op is not string, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqSetActionBatch(op is not string, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3283,7 +3282,7 @@ void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueI
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(nJsId, server_info)) {
 		LogWarning(
-				"CAccessServerApp::ReqSetActionBatch(get job server by js id failed! job server id: %u, flow id: %u)",
+				"CHttpServerApp::ReqSetActionBatch(get job server by js id failed! job server id: %u, flow id: %u)",
                 nJsId, nUniqueId);
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, "Service Unavailable", nUniqueId);
 		return;
@@ -3299,7 +3298,7 @@ void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueI
 				server_info.first, server_info.second);
 		if (ret != 0) {
 			LogWarning(
-					"CAccessServerApp::ReqSetActionBatch(SendPacketToDCC() failed! flow id: %u)",
+					"CHttpServerApp::ReqSetActionBatch(SendPacketToDCC() failed! flow id: %u)",
                     nUniqueId);
             SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
 			return;
@@ -3308,14 +3307,14 @@ void CAccessServerApp::ReqSetActionBatch(Json::Value &req, unsigned int nUniqueI
 		//发送成功
         m_mapAsyncReqInfo[nUniqueId] = info;
 	}
-    LogDebug("CAccessServerApp::ReqSetActionBatch(set action batch ok! flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::ReqSetActionBatch(set action batch ok! flow id: %u)", nUniqueId);
 }
 
-void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 {
 	if (req["update_json"].isNull()) {
 		LogWarning(
-				"CAccessServerApp::ReqUpdateBatch(update_json is null, flow id: %u)",
+				"CHttpServerApp::ReqUpdateBatch(update_json is null, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3329,7 +3328,7 @@ void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 	//非数组
 	if (!update_json.isArray()) {
 		LogWarning(
-				"CAccessServerApp::ReqUpdateBatch(update_json is not array, flow id: %u)",
+				"CHttpServerApp::ReqUpdateBatch(update_json is not array, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3341,7 +3340,7 @@ void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 	//空数组
 	if (update_json.size() == 0){
 		LogWarning(
-				"CAccessServerApp::ReqUpdateBatch(update_json is empty, flow id: %u)",
+				"CHttpServerApp::ReqUpdateBatch(update_json is empty, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3366,7 +3365,7 @@ void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 
 		if (!request.isObject()){
 			LogWarning(
-					"CAccessServerApp::ReqUpdateBatch(update_json is not object, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqUpdateBatch(update_json is not object, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3385,7 +3384,7 @@ void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 
 			if (Trim(strJobId) != Trim(tmpStrJobId)) {
 				LogWarning(
-						"CAccessServerApp::ReqUpdateBatch(trans job_id failed, flow id: %u, index of array: %u)",
+						"CHttpServerApp::ReqUpdateBatch(trans job_id failed, flow id: %u, index of array: %u)",
                         nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(
 						BAD_JSON_REQUEST,
@@ -3402,7 +3401,7 @@ void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 				nJsId = js_id;
 			else if ( nJsId != js_id){
 				LogWarning(
-						"CAccessServerApp::ReqUpdateBatch(js id is not consistent, flow id: %u, index of array: %u)",
+						"CHttpServerApp::ReqUpdateBatch(js id is not consistent, flow id: %u, index of array: %u)",
                         nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(
 						BAD_JSON_REQUEST,
@@ -3414,7 +3413,7 @@ void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 			}
 		} else {
 			LogWarning(
-					"CAccessServerApp::ReqUpdateBatch(job_id is not string, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqUpdateBatch(job_id is not string, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3434,7 +3433,7 @@ void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 				nField = ret;
 			} else {
 				LogWarning(
-						"CAccessServerApp::ReqUpdateBatch(field is invalid, flow id: %u, index of array: %u)",
+						"CHttpServerApp::ReqUpdateBatch(field is invalid, flow id: %u, index of array: %u)",
                         nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(
 						BAD_JSON_REQUEST,
@@ -3447,7 +3446,7 @@ void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 
 		} else {
 			LogWarning(
-					"CAccessServerApp::ReqUpdateBatch(Json: field is null, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqUpdateBatch(Json: field is null, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3483,7 +3482,7 @@ void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(nJsId, server_info)) {
 		LogWarning(
-				"CAccessServerApp::ReqUpdateBatch(get job server by js id failed! job server id: %u, flow id: %u)",
+				"CHttpServerApp::ReqUpdateBatch(get job server by js id failed! job server id: %u, flow id: %u)",
                 nJsId, nUniqueId);
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, "Service Unavailable", nUniqueId);
 		return;
@@ -3499,7 +3498,7 @@ void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 				server_info.first, server_info.second);
 		if (ret != 0) {
 			LogWarning(
-					"CAccessServerApp::ReqUpdateBatch(SendPacketToDCC() failed! flow id: %u)",
+					"CHttpServerApp::ReqUpdateBatch(SendPacketToDCC() failed! flow id: %u)",
                     nUniqueId);
             SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
 			return;
@@ -3508,14 +3507,14 @@ void CAccessServerApp::ReqUpdateBatch(Json::Value &req, unsigned int nUniqueId)
 		//发送成功
         m_mapAsyncReqInfo[nUniqueId] = info;
 	}
-    LogDebug("CAccessServerApp::ReqUpdateBatch(update batch ok! flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::ReqUpdateBatch(update batch ok! flow id: %u)", nUniqueId);
 }
 
-void CAccessServerApp::ReqQueryBatch(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqQueryBatch(Json::Value &req, unsigned int nUniqueId)
 {
 	if (req["query2_json"].isNull()) {
 		LogWarning(
-				"CAccessServerApp::ReqQueryBatch(query2_json is null, flow id: %u)",
+				"CHttpServerApp::ReqQueryBatch(query2_json is null, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3529,7 +3528,7 @@ void CAccessServerApp::ReqQueryBatch(Json::Value &req, unsigned int nUniqueId)
 	//非数组
 	if (!query2_json.isArray()) {
 		LogWarning(
-				"CAccessServerApp::ReqQueryBatch(query2_json is not array, flow id: %u)",
+				"CHttpServerApp::ReqQueryBatch(query2_json is not array, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3541,7 +3540,7 @@ void CAccessServerApp::ReqQueryBatch(Json::Value &req, unsigned int nUniqueId)
 	//空数组
 	if (query2_json.size() == 0){
 		LogWarning(
-				"CAccessServerApp::ReqQueryBatch(query2_json is empty, flow id: %u)",
+				"CHttpServerApp::ReqQueryBatch(query2_json is empty, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3565,7 +3564,7 @@ void CAccessServerApp::ReqQueryBatch(Json::Value &req, unsigned int nUniqueId)
 
 		if (!request.isObject()){
 			LogWarning(
-					"CAccessServerApp::ReqQueryBatch(request is not object, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqQueryBatch(request is not object, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3584,7 +3583,7 @@ void CAccessServerApp::ReqQueryBatch(Json::Value &req, unsigned int nUniqueId)
 
 			if (Trim(strJobId) != Trim(tmpStrJobId)) {
 				LogWarning(
-						"CAccessServerApp::ReqQueryBatch(trans job_id failed, flow id: %u, index of array: %u)",
+						"CHttpServerApp::ReqQueryBatch(trans job_id failed, flow id: %u, index of array: %u)",
                         nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(
 						BAD_JSON_REQUEST,
@@ -3601,7 +3600,7 @@ void CAccessServerApp::ReqQueryBatch(Json::Value &req, unsigned int nUniqueId)
 				nJsId = js_id;
 			else if ( nJsId != js_id){
 				LogWarning(
-						"CAccessServerApp::ReqQueryBatch(js id is not consistent, flow id: %u, index of array: %u)",
+						"CHttpServerApp::ReqQueryBatch(js id is not consistent, flow id: %u, index of array: %u)",
                         nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(
 						BAD_JSON_REQUEST,
@@ -3613,7 +3612,7 @@ void CAccessServerApp::ReqQueryBatch(Json::Value &req, unsigned int nUniqueId)
 			}
 		} else {
 			LogWarning(
-					"CAccessServerApp::ReqQueryBatch(job_id is not string, flow id: %u, client_id: %u, index of array: %u)",
+					"CHttpServerApp::ReqQueryBatch(job_id is not string, flow id: %u, client_id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3638,7 +3637,7 @@ void CAccessServerApp::ReqQueryBatch(Json::Value &req, unsigned int nUniqueId)
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(nJsId, server_info)) {
 		LogWarning(
-				"CAccessServerApp::ReqQueryBatch(get job server by js id failed! job server id: %u, flow id: %u)",
+				"CHttpServerApp::ReqQueryBatch(get job server by js id failed! job server id: %u, flow id: %u)",
                 nJsId, nUniqueId);
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, "Service Unavailable", nUniqueId);
 		return;
@@ -3654,7 +3653,7 @@ void CAccessServerApp::ReqQueryBatch(Json::Value &req, unsigned int nUniqueId)
 				server_info.first, server_info.second);
 		if (ret != 0) {
 			LogWarning(
-					"CAccessServerApp::ReqQueryBatch(SendPacketToDCC() failed! flow id: %u)",
+					"CHttpServerApp::ReqQueryBatch(SendPacketToDCC() failed! flow id: %u)",
                     nUniqueId);
             SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
 			return;
@@ -3663,14 +3662,14 @@ void CAccessServerApp::ReqQueryBatch(Json::Value &req, unsigned int nUniqueId)
 		//发送成功
         m_mapAsyncReqInfo[nUniqueId] = info;
 	}
-    LogDebug("CAccessServerApp::ReqQueryBatch(query batch ok! flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::ReqQueryBatch(query batch ok! flow id: %u)", nUniqueId);
 }
 
-void CAccessServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUniqueId)
 {
 	if (req["query_field_json"].isNull()) {
 		LogWarning(
-				"CAccessServerApp::ReqQueryFieldBatch(query_field_json is null, flow id: %u)",
+				"CHttpServerApp::ReqQueryFieldBatch(query_field_json is null, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3684,7 +3683,7 @@ void CAccessServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUnique
 	//非数组
 	if (!query_field_json.isArray()) {
 		LogWarning(
-				"CAccessServerApp::ReqQueryFieldBatch(query_field_json is not array, flow id: %u)",
+				"CHttpServerApp::ReqQueryFieldBatch(query_field_json is not array, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3696,7 +3695,7 @@ void CAccessServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUnique
 	//空数组
 	if (query_field_json.size() == 0){
 		LogWarning(
-				"CAccessServerApp::ReqQueryFieldBatch(query_field_json is empty, flow id: %u)",
+				"CHttpServerApp::ReqQueryFieldBatch(query_field_json is empty, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3721,7 +3720,7 @@ void CAccessServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUnique
 		//元素不是json对象,返回错误
 		if (!request.isObject()){
 			LogWarning(
-					"CAccessServerApp::ReqQueryFieldBatch(request is not object, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqQueryFieldBatch(request is not object, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3740,7 +3739,7 @@ void CAccessServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUnique
 
 			if (Trim(strJobId) != Trim(tmpStrJobId)) {
 				LogWarning(
-						"CAccessServerApp::ReqQueryFieldBatch(trans job_id failed, flow id: %u, index of array: %u)",
+						"CHttpServerApp::ReqQueryFieldBatch(trans job_id failed, flow id: %u, index of array: %u)",
                         nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(
 						BAD_JSON_REQUEST,
@@ -3757,7 +3756,7 @@ void CAccessServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUnique
 				nJsId = js_id;
 			else if ( nJsId != js_id){
 				LogWarning(
-						"CAccessServerApp::ReqQueryFieldBatch(js id is not consistent, flow id: %u, index of array: %u)",
+						"CHttpServerApp::ReqQueryFieldBatch(js id is not consistent, flow id: %u, index of array: %u)",
                         nUniqueId, (unsigned int)i);
                 SendErrHttpRspByUniqueId(
 						BAD_JSON_REQUEST,
@@ -3769,7 +3768,7 @@ void CAccessServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUnique
 			}
 		} else {
 			LogWarning(
-					"CAccessServerApp::ReqQueryFieldBatch(job_id is not string, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqQueryFieldBatch(job_id is not string, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3819,7 +3818,7 @@ void CAccessServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUnique
 			else
 				nStep = g_nDefaultStep;
 		} else {
-            LogWarning("CAccessServerApp::ReqQueryFieldBatch(field is not string, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::ReqQueryFieldBatch(field is not string, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'field',error:'empty value'", nUniqueId);
 			return;
 		}
@@ -3838,7 +3837,7 @@ void CAccessServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUnique
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(nJsId, server_info)) {
 		LogWarning(
-				"CAccessServerApp::ReqQueryFieldBatch(get job server by js id failed! job server id: %u, flow id: %u)",
+				"CHttpServerApp::ReqQueryFieldBatch(get job server by js id failed! job server id: %u, flow id: %u)",
                 nJsId, nUniqueId);
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, "Service Unavailable", nUniqueId);
 		return;
@@ -3855,7 +3854,7 @@ void CAccessServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUnique
 				server_info.first, server_info.second);
 		if (ret != 0) {
 			LogWarning(
-					"CAccessServerApp::ReqQueryFieldBatch(SendPacketToDCC() failed! flow id: %u)",
+					"CHttpServerApp::ReqQueryFieldBatch(SendPacketToDCC() failed! flow id: %u)",
                     nUniqueId);
             SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
 			return;
@@ -3864,14 +3863,14 @@ void CAccessServerApp::ReqQueryFieldBatch(Json::Value &req, unsigned int nUnique
 		//发送成功
         m_mapAsyncReqInfo[nUniqueId] = info;
 	}
-    LogDebug("CAccessServerApp::ReqQueryFieldBatch(query feild batch ok! flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::ReqQueryFieldBatch(query feild batch ok! flow id: %u)", nUniqueId);
 }
 
-void CAccessServerApp::ReqDeleteBatch(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqDeleteBatch(Json::Value &req, unsigned int nUniqueId)
 {
 	if (req["job_id_list"].isNull()) {
 		LogWarning(
-				"CAccessServerApp::ReqDeleteBatch(job_id_list is null, flow id: %u)",
+				"CHttpServerApp::ReqDeleteBatch(job_id_list is null, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3885,7 +3884,7 @@ void CAccessServerApp::ReqDeleteBatch(Json::Value &req, unsigned int nUniqueId)
 	//非数组
 	if (!job_id_list.isArray()) {
 		LogWarning(
-				"CAccessServerApp::ReqDeleteBatch(job_id_list is not array, flow id: %u, client id: %u)",
+				"CHttpServerApp::ReqDeleteBatch(job_id_list is not array, flow id: %u, client id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3897,7 +3896,7 @@ void CAccessServerApp::ReqDeleteBatch(Json::Value &req, unsigned int nUniqueId)
 	//空数组
 	if (job_id_list.size() == 0){
 		LogWarning(
-				"CAccessServerApp::ReqDeleteBatch(job_id_list is empty, flow id: %u, client id: %u)",
+				"CHttpServerApp::ReqDeleteBatch(job_id_list is empty, flow id: %u, client id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -3919,7 +3918,7 @@ void CAccessServerApp::ReqDeleteBatch(Json::Value &req, unsigned int nUniqueId)
 		if (!request.isString()){
 			//如果job id不为string，返回错误
 			LogWarning(
-					"CAccessServerApp::ReqDeleteBatch(job_id is not string, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqDeleteBatch(job_id is not string, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3937,7 +3936,7 @@ void CAccessServerApp::ReqDeleteBatch(Json::Value &req, unsigned int nUniqueId)
 
 		if (Trim(strJobId) != Trim(tmpStrJobId)) {
 			LogWarning(
-					"CAccessServerApp::ReqDeleteBatch(trans job_id failed, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqDeleteBatch(trans job_id failed, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3953,7 +3952,7 @@ void CAccessServerApp::ReqDeleteBatch(Json::Value &req, unsigned int nUniqueId)
 			nJsId = js_id;
 		else if (nJsId != js_id) {
 			LogWarning(
-					"CAccessServerApp::ReqDeleteBatch(js id is not consistent, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqDeleteBatch(js id is not consistent, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -3970,7 +3969,7 @@ void CAccessServerApp::ReqDeleteBatch(Json::Value &req, unsigned int nUniqueId)
 	pair<unsigned int, unsigned short> server_info;
 	if (!GetJobServerInfoById(nJsId, server_info)) {
 		LogWarning(
-				"CAccessServerApp::ReqDeleteBatch(get job server by js id failed! job server id: %u, flow id: %u)",
+				"CHttpServerApp::ReqDeleteBatch(get job server by js id failed! job server id: %u, flow id: %u)",
                 nJsId, nUniqueId);
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, "Service Unavailable", nUniqueId);
 		return;
@@ -3986,7 +3985,7 @@ void CAccessServerApp::ReqDeleteBatch(Json::Value &req, unsigned int nUniqueId)
 				server_info.first, server_info.second);
 		if (ret != 0) {
 			LogWarning(
-					"CAccessServerApp::ReqDeleteBatch(SendPacketToDCC() failed! flow id: %u)",
+					"CHttpServerApp::ReqDeleteBatch(SendPacketToDCC() failed! flow id: %u)",
                     nUniqueId);
             SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
 			return;
@@ -3995,14 +3994,14 @@ void CAccessServerApp::ReqDeleteBatch(Json::Value &req, unsigned int nUniqueId)
 		//发送成功
         m_mapAsyncReqInfo[nUniqueId] = info;
 	}
-    LogDebug("CAccessServerApp::ReqDeleteBatch(delete batch ok! flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::ReqDeleteBatch(delete batch ok! flow id: %u)", nUniqueId);
 }
 
-void CAccessServerApp::ReqSequenceCreate(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqSequenceCreate(Json::Value &req, unsigned int nUniqueId)
 {
 	if (req["job_id_list"].isNull()) {
 		LogWarning(
-				"CAccessServerApp::ReqSequenceCreate(job_id_list is null, flow id: %u)",
+				"CHttpServerApp::ReqSequenceCreate(job_id_list is null, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -4016,7 +4015,7 @@ void CAccessServerApp::ReqSequenceCreate(Json::Value &req, unsigned int nUniqueI
 	//非数组
 	if (!job_id_list.isArray()) {
 		LogWarning(
-				"CAccessServerApp::ReqSequenceCreate(job_id_list is not array, flow id: %u)",
+				"CHttpServerApp::ReqSequenceCreate(job_id_list is not array, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -4028,7 +4027,7 @@ void CAccessServerApp::ReqSequenceCreate(Json::Value &req, unsigned int nUniqueI
 	//空数组
 	if (job_id_list.size() == 0){
 		LogWarning(
-				"CAccessServerApp::ReqSequenceCreate(job_id_list is empty, flow id: %u)",
+				"CHttpServerApp::ReqSequenceCreate(job_id_list is empty, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -4050,7 +4049,7 @@ void CAccessServerApp::ReqSequenceCreate(Json::Value &req, unsigned int nUniqueI
 		if (!request.isString()){
 			//如果job id不为string，返回错误
 			LogWarning(
-					"CAccessServerApp::ReqSequenceCreate(job_id is not string, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqSequenceCreate(job_id is not string, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -4078,7 +4077,7 @@ void CAccessServerApp::ReqSequenceCreate(Json::Value &req, unsigned int nUniqueI
 			g_nSerialServerIp, g_nSerialServerPort);
 	if (ret != 0) {
 		LogWarning(
-				"CAccessServerApp::ReqSequenceCreate(SendPacketToDCC() failed! flow id: %u)",
+				"CHttpServerApp::ReqSequenceCreate(SendPacketToDCC() failed! flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
 		return;
@@ -4086,15 +4085,15 @@ void CAccessServerApp::ReqSequenceCreate(Json::Value &req, unsigned int nUniqueI
 
 	//发送成功
     m_mapAsyncReqInfo[nUniqueId] = info;
-	LogDebug("CAccessServerApp::ReqSequenceCreate(sequence create ok! flow id: %u)",
+	LogDebug("CHttpServerApp::ReqSequenceCreate(sequence create ok! flow id: %u)",
             nUniqueId);
 }
 
-void CAccessServerApp::ReqSequenceErase(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqSequenceErase(Json::Value &req, unsigned int nUniqueId)
 {
 	if (req["job_id_list"].isNull()) {
 		LogWarning(
-				"CAccessServerApp::ReqSequenceErase(job_id_list is null, flow id: %u)",
+				"CHttpServerApp::ReqSequenceErase(job_id_list is null, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -4108,7 +4107,7 @@ void CAccessServerApp::ReqSequenceErase(Json::Value &req, unsigned int nUniqueId
 	//非数组
 	if (!job_id_list.isArray()) {
 		LogWarning(
-				"CAccessServerApp::ReqSequenceErase(job_id_list is not array, flow id: %u)",
+				"CHttpServerApp::ReqSequenceErase(job_id_list is not array, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -4120,7 +4119,7 @@ void CAccessServerApp::ReqSequenceErase(Json::Value &req, unsigned int nUniqueId
 	//空数组
 	if (job_id_list.size() == 0){
 		LogWarning(
-				"CAccessServerApp::ReqSequenceErase(job_id_list is empty, flow id: %u)",
+				"CHttpServerApp::ReqSequenceErase(job_id_list is empty, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -4132,7 +4131,7 @@ void CAccessServerApp::ReqSequenceErase(Json::Value &req, unsigned int nUniqueId
 	int sequence_id = 0;
 	if (!req["sequence_id"].isString()){
 		LogWarning(
-				"CAccessServerApp::ReqSequenceErase(sequence_id is null, flow id: %u)",
+				"CHttpServerApp::ReqSequenceErase(sequence_id is null, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -4145,7 +4144,7 @@ void CAccessServerApp::ReqSequenceErase(Json::Value &req, unsigned int nUniqueId
 		string tmp = IntToString(sequence_id);
 		if (tmp != s_id){
 			LogWarning(
-					"CAccessServerApp::ReqSequenceErase(sequence_id is invalid, flow id: %u)",
+					"CHttpServerApp::ReqSequenceErase(sequence_id is invalid, flow id: %u)",
                     nUniqueId);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -4166,7 +4165,7 @@ void CAccessServerApp::ReqSequenceErase(Json::Value &req, unsigned int nUniqueId
 		if (!request.isString()){
 			//如果job id不为string，返回错误
 			LogWarning(
-					"CAccessServerApp::ReqSequenceErase(job_id is not string, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqSequenceErase(job_id is not string, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -4194,7 +4193,7 @@ void CAccessServerApp::ReqSequenceErase(Json::Value &req, unsigned int nUniqueId
 			g_nSerialServerIp, g_nSerialServerPort);
 	if (ret != 0) {
 		LogWarning(
-				"CAccessServerApp::ReqSequenceErase(SendPacketToDCC() failed! flow id: %u)",
+				"CHttpServerApp::ReqSequenceErase(SendPacketToDCC() failed! flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
 		return;
@@ -4202,15 +4201,15 @@ void CAccessServerApp::ReqSequenceErase(Json::Value &req, unsigned int nUniqueId
 
 	//发送成功
     m_mapAsyncReqInfo[nUniqueId] = info;
-	LogDebug("CAccessServerApp::ReqSequenceErase(sequence create ok! flow id: %u)",
+	LogDebug("CHttpServerApp::ReqSequenceErase(sequence create ok! flow id: %u)",
             nUniqueId);
 }
 
-void CAccessServerApp::ReqSequenceDelete(Json::Value &req, unsigned int nUniqueId)
+void CHttpServerApp::ReqSequenceDelete(Json::Value &req, unsigned int nUniqueId)
 {
 	if (req["sequence_id_list"].isNull()) {
 		LogWarning(
-				"CAccessServerApp::ReqSequenceDelete(job_id_list is null, flow id: %u)",
+				"CHttpServerApp::ReqSequenceDelete(job_id_list is null, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -4224,7 +4223,7 @@ void CAccessServerApp::ReqSequenceDelete(Json::Value &req, unsigned int nUniqueI
 	//非数组
 	if (!sequence_id_list.isArray()) {
 		LogWarning(
-				"CAccessServerApp::ReqSequenceDelete(sequence_id_list is not array, flow id: %u)",
+				"CHttpServerApp::ReqSequenceDelete(sequence_id_list is not array, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -4236,7 +4235,7 @@ void CAccessServerApp::ReqSequenceDelete(Json::Value &req, unsigned int nUniqueI
 	//空数组
 	if (sequence_id_list.size() == 0){
 		LogWarning(
-				"CAccessServerApp::ReqSequenceDelete(sequence_id_list is empty, flow id: %u)",
+				"CHttpServerApp::ReqSequenceDelete(sequence_id_list is empty, flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(
 				BAD_JSON_REQUEST,
@@ -4254,7 +4253,7 @@ void CAccessServerApp::ReqSequenceDelete(Json::Value &req, unsigned int nUniqueI
 		if (!request.isString()){
 			//如果job id不为string，返回错误
 			LogWarning(
-					"CAccessServerApp::ReqSequenceDelete(sequence_id is not string, flow id: %u, index of array: %u)",
+					"CHttpServerApp::ReqSequenceDelete(sequence_id is not string, flow id: %u, index of array: %u)",
                     nUniqueId, (unsigned int)i);
             SendErrHttpRspByUniqueId(
 					BAD_JSON_REQUEST,
@@ -4281,7 +4280,7 @@ void CAccessServerApp::ReqSequenceDelete(Json::Value &req, unsigned int nUniqueI
 			g_nSerialServerIp, g_nSerialServerPort);
 	if (ret != 0) {
 		LogWarning(
-				"CAccessServerApp::ReqSequenceDelete(SendPacketToDCC() failed! flow id: %u)",
+				"CHttpServerApp::ReqSequenceDelete(SendPacketToDCC() failed! flow id: %u)",
                 nUniqueId);
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
 		return;
@@ -4289,18 +4288,18 @@ void CAccessServerApp::ReqSequenceDelete(Json::Value &req, unsigned int nUniqueI
 
 	//发送成功
     m_mapAsyncReqInfo[nUniqueId] = info;
-	LogDebug("CAccessServerApp::ReqSequenceDelete(sequence delete ok! flow id: %u)",
+	LogDebug("CHttpServerApp::ReqSequenceDelete(sequence delete ok! flow id: %u)",
             nUniqueId);
 }
 
 
-void CAccessServerApp::SendHttpRsp(const Json::Value& response, unsigned int nFlow )
+void CHttpServerApp::SendHttpRsp(const Json::Value& response, unsigned int nFlow )
 {
 	//LogJsonObj(LOG_LEVEL_LOWEST, response);
 	Json::StyledWriter writer;
 	string rsp = writer.write(response);
 
-	PrintStr("CAccessServerApp::SendHttpRsp(response data: ", rsp, g_nLogStrLen, nFlow);
+	PrintStr("CHttpServerApp::SendHttpRsp(response data: ", rsp, g_nLogStrLen, nFlow);
 
 	CHttpRspPkt http_pkg(r_code_200, r_reason_200, rsp.c_str(), rsp.length());
 	SendPacketToCCD(http_pkg, nFlow);
@@ -4308,28 +4307,28 @@ void CAccessServerApp::SendHttpRsp(const Json::Value& response, unsigned int nFl
 	//将客户的请求信息删除
 	//m_mapAsyncReqInfo.erase(nFlow);
 
-	LogDebug("CAccessServerApp::SendHttpRsp(send http response ok. flow id: %u, response data len: %u)",
+	LogDebug("CHttpServerApp::SendHttpRsp(send http response ok. flow id: %u, response data len: %u)",
 			nFlow, (unsigned int)rsp.length());
 }
 
-void CAccessServerApp::SendHttpRspByUniqueId(const Json::Value& response, unsigned int nUniqueId )
+void CHttpServerApp::SendHttpRspByUniqueId(const Json::Value& response, unsigned int nUniqueId )
 {
     map<unsigned int, unsigned long long>::iterator it = m_mapUniqueId.find(nUniqueId);
     if(it == m_mapUniqueId.end())
     {
-        LogError("CAccessServerApp::SendHttpRspByUniqueId(can not find unique id, unique id :%d)", nUniqueId);
+        LogError("CHttpServerApp::SendHttpRspByUniqueId(can not find unique id, unique id :%d)", nUniqueId);
         return;
     }
 
     unsigned int flow = (unsigned int)(it->second >> 32);
-    LogError("CAccessServerApp::SendHttpRspByUniqueId(flow :%d append %d)", flow, (unsigned int)(it->second));
+    LogError("CHttpServerApp::SendHttpRspByUniqueId(flow :%d append %d)", flow, (unsigned int)(it->second));
     SendHttpRsp(response, flow);
 
     m_mapUniqueId.erase(it);
 }
 
 
-void CAccessServerApp::RspCreate(const RspJobCreateList* packet,
+void CHttpServerApp::RspCreate(const RspJobCreateList* packet,
         unsigned int nIp,
         unsigned short nPort,
         unsigned int nUniqueId)
@@ -4355,10 +4354,10 @@ void CAccessServerApp::RspCreate(const RspJobCreateList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-    LogDebug("CAccessServerApp::RspCreate(flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::RspCreate(flow id: %u)", nUniqueId);
 }
 
-void CAccessServerApp::RspCreate2(const RspJobCreateList* packet,
+void CHttpServerApp::RspCreate2(const RspJobCreateList* packet,
         unsigned int nIp,
         unsigned short nPort,
         unsigned int nUniqueId)
@@ -4384,10 +4383,10 @@ void CAccessServerApp::RspCreate2(const RspJobCreateList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-    LogDebug("CAccessServerApp::RspCreate2(flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::RspCreate2(flow id: %u)", nUniqueId);
 }
 
-void CAccessServerApp::SendQueryAll(unsigned int nFlow){
+void CHttpServerApp::SendQueryAll(unsigned int nFlow){
     map<unsigned int, SyncReqInfo>::iterator it = m_mapSyncReqInfo.find(nFlow);
     if (it != m_mapSyncReqInfo.end()){
         ReqJobQueryAllList reqPacket;
@@ -4405,23 +4404,23 @@ void CAccessServerApp::SendQueryAll(unsigned int nFlow){
                 );
 
         if (ret != 0){
-            LogWarning("CAccessServerApp::SendQueryAll(SendPacketToDCC failed! flow id: %u, server ip: %s, server port: %hu)", 
+            LogWarning("CHttpServerApp::SendQueryAll(SendPacketToDCC failed! flow id: %u, server ip: %s, server port: %hu)", 
                     nFlow, IpIntToString(it->second.port).c_str(), it->second.port);
             SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nFlow);
             return;
         }
         
         it->second.status = SyncReqInfo::CREATE_SYNC_WAIT_RSP_QUERY_FIELD;
-        LogDebug("CAccessServerApp::SendQueryAll(ok. flow id: %u, server ip: %s, server port: %hu)", 
+        LogDebug("CHttpServerApp::SendQueryAll(ok. flow id: %u, server ip: %s, server port: %hu)", 
                 nFlow, IpIntToString(it->second.ip).c_str(), it->second.port);
 
     } else {
-        LogWarning("CAccessServerApp::SendQueryAll(can not find element in m_mapSyncReqInfo, flow id: %u)", nFlow);
+        LogWarning("CHttpServerApp::SendQueryAll(can not find element in m_mapSyncReqInfo, flow id: %u)", nFlow);
     }
 }
 
 void
-CAccessServerApp::RspCreateSync2(const void* packet,
+CHttpServerApp::RspCreateSync2(const void* packet,
         unsigned int nIp,
         unsigned short nPort,
         unsigned int nUniqueId,
@@ -4437,7 +4436,7 @@ CAccessServerApp::RspCreateSync2(const void* packet,
 			{
 				if (info.status != SyncReqInfo::CREATE_SYNC_WAIT_RSP_CREATE){
 					//状态错误
-                    LogWarning("CAccessServerApp::RspCreateSync2(status error. return type: rspJobCreateListCid, now status: %d, flow id: %u)", info.status, nUniqueId);
+                    LogWarning("CHttpServerApp::RspCreateSync2(status error. return type: rspJobCreateListCid, now status: %d, flow id: %u)", info.status, nUniqueId);
                     SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
                     m_mapSyncReqInfo.erase(nUniqueId);
 					return;
@@ -4446,7 +4445,7 @@ CAccessServerApp::RspCreateSync2(const void* packet,
 				RspJobCreateList* p_pkt = (RspJobCreateList*)packet;
 				RspJobCreate* rsp_sigle = p_pkt->First();
 				if(rsp_sigle == NULL){
-                    LogWarning("CAccessServerApp::RspCreateSync2(Ajs::rspJobCreateListCid, RspJobCreate pointer is NULL,flow id: %u)", nUniqueId);
+                    LogWarning("CHttpServerApp::RspCreateSync2(Ajs::rspJobCreateListCid, RspJobCreate pointer is NULL,flow id: %u)", nUniqueId);
                     SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
                     m_mapSyncReqInfo.erase(nUniqueId);
 					return;
@@ -4454,7 +4453,7 @@ CAccessServerApp::RspCreateSync2(const void* packet,
 
 				int ret = (int)rsp_sigle->ret;
 				if (ret != 0){
-                    LogWarning("CAccessServerApp::RspCreateSync2(Ajs::rspJobCreateListCid, CreateList failed, flow id: %u)", nUniqueId);
+                    LogWarning("CHttpServerApp::RspCreateSync2(Ajs::rspJobCreateListCid, CreateList failed, flow id: %u)", nUniqueId);
 					Json::Value response;
 					response["errno"] = (int)ret;
 					response["error"] = ConvertErrorNoToStr(ret);
@@ -4471,7 +4470,7 @@ CAccessServerApp::RspCreateSync2(const void* packet,
                     info.job_id = job_id;
 
 					info.status = SyncReqInfo::CREATE_SYNC_WAIT_REQ_QUERY_FIELD;
-                    LogDebug("CAccessServerApp::RspCreateSync2(Ajs::rspJobCreateListCid, flow id: %u, job id: %u)",nUniqueId, job_id);
+                    LogDebug("CHttpServerApp::RspCreateSync2(Ajs::rspJobCreateListCid, flow id: %u, job id: %u)",nUniqueId, job_id);
 				}
 				break;
 			}
@@ -4480,7 +4479,7 @@ CAccessServerApp::RspCreateSync2(const void* packet,
 			{
 				if (info.status != SyncReqInfo::CREATE_SYNC_WAIT_RSP_QUERY_FIELD){
 					//状态错误
-                    LogWarning("CAccessServerApp::RspCreateSync2(status error. return type: rspJobQueryFieldListCid, now status: %d, flow id: %u)", info.status, nUniqueId);
+                    LogWarning("CHttpServerApp::RspCreateSync2(status error. return type: rspJobQueryFieldListCid, now status: %d, flow id: %u)", info.status, nUniqueId);
                     SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
                     m_mapSyncReqInfo.erase(nUniqueId);
 					return;
@@ -4490,7 +4489,7 @@ CAccessServerApp::RspCreateSync2(const void* packet,
 				RspJobQueryField* rsp_sigle = p_pkg->First();
 
 				if(rsp_sigle == NULL){
-                    LogWarning("CAccessServerApp::RspCreateSync2(Ajs::rspJobQueryFieldListCid, RspJobQueryField pointer is NULL, flow id: %u)", nUniqueId);
+                    LogWarning("CHttpServerApp::RspCreateSync2(Ajs::rspJobQueryFieldListCid, RspJobQueryField pointer is NULL, flow id: %u)", nUniqueId);
                     SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
                     m_mapSyncReqInfo.erase(nUniqueId);
 					return;
@@ -4499,7 +4498,7 @@ CAccessServerApp::RspCreateSync2(const void* packet,
 				int ret = (int)rsp_sigle->ret;
 				if (ret != 0){
 					//查询状态失败
-                    LogWarning("CAccessServerApp::RspCreateSync2(Ajs::rspJobQueryFieldListCid, QueryField failed, flow id: %u)", nUniqueId);
+                    LogWarning("CHttpServerApp::RspCreateSync2(Ajs::rspJobQueryFieldListCid, QueryField failed, flow id: %u)", nUniqueId);
 
 					int job_id = (int)rsp_sigle->jobId;
 					nJobId = job_id;
@@ -4524,7 +4523,7 @@ CAccessServerApp::RspCreateSync2(const void* packet,
 
                         SendQueryAll(nUniqueId);
 					}
-                    LogDebug("CAccessServerApp::RspCreateSync2(Ajs::rspJobQueryFieldListCid, QueryField ok, flow id: %u, status: %d, job id: %d)", nUniqueId, status, job_id);
+                    LogDebug("CHttpServerApp::RspCreateSync2(Ajs::rspJobQueryFieldListCid, QueryField ok, flow id: %u, status: %d, job id: %d)", nUniqueId, status, job_id);
 				}
 				break;
 			}
@@ -4535,7 +4534,7 @@ CAccessServerApp::RspCreateSync2(const void* packet,
 				RspJobQueryAll* rsp_sigle = p_pkg->First();
 
 				if(rsp_sigle == NULL){
-                    LogWarning("CAccessServerApp::RspCreateSync2(Ajs::rspJobQueryAllListCid, RspJobQueryAll pointer is NULL, flow id: %u)", nUniqueId);
+                    LogWarning("CHttpServerApp::RspCreateSync2(Ajs::rspJobQueryAllListCid, RspJobQueryAll pointer is NULL, flow id: %u)", nUniqueId);
                     SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, nUniqueId);
                     m_mapSyncReqInfo.erase(nUniqueId);
 					return;
@@ -4560,17 +4559,17 @@ CAccessServerApp::RspCreateSync2(const void* packet,
                 SendHttpRspByUniqueId(response, nUniqueId);
                 m_mapSyncReqInfo.erase(nUniqueId);
 
-                LogDebug("CAccessServerApp::RspCreateSync2(Ajs::rspJobQueryAllListCid, QueryAll ok, flow id: %u, job id: %llu)", nUniqueId, js_id);
+                LogDebug("CHttpServerApp::RspCreateSync2(Ajs::rspJobQueryAllListCid, QueryAll ok, flow id: %u, job id: %llu)", nUniqueId, js_id);
 				break;
 			}
 		default:
-            LogWarning("CAccessServerApp::RspCreateSync2(default, flow id: %u)", nUniqueId);
+            LogWarning("CHttpServerApp::RspCreateSync2(default, flow id: %u)", nUniqueId);
 			break;
 	}
 }
 
 void 
-CAccessServerApp::FillQueryResult(Json::Value& root, const RspJobQueryAll* pSeq, unsigned int nIp)
+CHttpServerApp::FillQueryResult(Json::Value& root, const RspJobQueryAll* pSeq, unsigned int nIp)
 {
 	int jobId = (int) pSeq->jobId;
 	int flag = (int)pSeq->flag;
@@ -4605,14 +4604,14 @@ CAccessServerApp::FillQueryResult(Json::Value& root, const RspJobQueryAll* pSeq,
 }
 
 void
-CAccessServerApp::RspSetAction(const RspJobSetActionList* packet,
+CHttpServerApp::RspSetAction(const RspJobSetActionList* packet,
         unsigned int nUniqueId, unsigned int nIp)
 {
 	RspJobSetAction* rspSetAction = packet->First();
     unsigned int flow = nUniqueId;
 
 	if(rspSetAction == NULL){
-		LogWarning("CAccessServerApp::RspSetAction(RspJobSetAction pointer is NULL, flow id: %u)", flow);
+		LogWarning("CHttpServerApp::RspSetAction(RspJobSetAction pointer is NULL, flow id: %u)", flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, flow);
         m_mapAsyncReqInfo.erase(nUniqueId);
 		return;
@@ -4633,17 +4632,17 @@ CAccessServerApp::RspSetAction(const RspJobSetActionList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspSetAction(ok. flow id: %u, job id: %d)", flow, jobId);
+	LogDebug("CHttpServerApp::RspSetAction(ok. flow id: %u, job id: %d)", flow, jobId);
 }
 
 void
-CAccessServerApp::RspUpdate(const RspJobUpdateList* packet, unsigned int nUniqueId, unsigned int nIp)
+CHttpServerApp::RspUpdate(const RspJobUpdateList* packet, unsigned int nUniqueId, unsigned int nIp)
 {
 	RspJobUpdate* rspUpdate = packet->First();
     unsigned int flow = nUniqueId;
 
 	if(rspUpdate == NULL){
-		LogWarning("CAccessServerApp::RspUpdate(RspUpdate pointer is NULL, flow id: %u)", flow);
+		LogWarning("CHttpServerApp::RspUpdate(RspUpdate pointer is NULL, flow id: %u)", flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, flow);
         m_mapAsyncReqInfo.erase(nUniqueId);
 		return;
@@ -4664,17 +4663,17 @@ CAccessServerApp::RspUpdate(const RspJobUpdateList* packet, unsigned int nUnique
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-    LogDebug("CAccessServerApp::RspUpdate(ok. flow id: %u, client id: %u, job id: %d)", flow, nUniqueId, jobId);
+    LogDebug("CHttpServerApp::RspUpdate(ok. flow id: %u, client id: %u, job id: %d)", flow, nUniqueId, jobId);
 }
 
 void
-CAccessServerApp::RspQuery(const RspJobQueryAllList* packet, unsigned int nUniqueId, unsigned int nIp)
+CHttpServerApp::RspQuery(const RspJobQueryAllList* packet, unsigned int nUniqueId, unsigned int nIp)
 {
 	RspJobQueryAll* rspQueryAll = packet->First();
     unsigned int flow = nUniqueId;
 
 	if(rspQueryAll == NULL){
-		LogWarning("CAccessServerApp::RspQuery(RspQuery pointer is NULL, flow id: %u)", flow);
+		LogWarning("CHttpServerApp::RspQuery(RspQuery pointer is NULL, flow id: %u)", flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, flow);
         m_mapAsyncReqInfo.erase(nUniqueId);
 		return;
@@ -4702,17 +4701,17 @@ CAccessServerApp::RspQuery(const RspJobQueryAllList* packet, unsigned int nUniqu
     result["append"] = m_mapAsyncReqInfo[nUniqueId].append;
     SendHttpRspByUniqueId(result, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspQuery(ok. flow id: %u, job id: %d)", flow, job_id);
+	LogDebug("CHttpServerApp::RspQuery(ok. flow id: %u, job id: %d)", flow, job_id);
 }
 
 void
-CAccessServerApp::RspQuery2(const RspJobQueryAllList* packet, unsigned int nUniqueId, unsigned int nIp)
+CHttpServerApp::RspQuery2(const RspJobQueryAllList* packet, unsigned int nUniqueId, unsigned int nIp)
 {
 	RspJobQueryAll* rspQueryAll = packet->First();
     unsigned int flow = nUniqueId;
 
 	if(rspQueryAll == NULL){
-		LogWarning("CAccessServerApp::RspQuery2(RspQuery2 pointer is NULL, flow id: %u)", flow);
+		LogWarning("CHttpServerApp::RspQuery2(RspQuery2 pointer is NULL, flow id: %u)", flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, flow);
         m_mapAsyncReqInfo.erase(nUniqueId);
 		return;
@@ -4736,17 +4735,17 @@ CAccessServerApp::RspQuery2(const RspJobQueryAllList* packet, unsigned int nUniq
 	FillQueryResult(result["result"], rspQueryAll, nIp);
     SendHttpRspByUniqueId(result, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspQuery2(ok. flow id: %u, job id: %d)", flow, job_id);
+	LogDebug("CHttpServerApp::RspQuery2(ok. flow id: %u, job id: %d)", flow, job_id);
 }
 
 void
-CAccessServerApp::RspQueryField(const RspJobQueryFieldList* packet, unsigned int nUniqueId, unsigned int nIp)
+CHttpServerApp::RspQueryField(const RspJobQueryFieldList* packet, unsigned int nUniqueId, unsigned int nIp)
 {
 	RspJobQueryField* rspQueryField = packet->First();
     unsigned int flow = nUniqueId;
 
 	if(rspQueryField == NULL){
-		LogWarning("CAccessServerApp::RspQueryField(RspQueryField pointer is NULL, flow id: %u)", flow);
+		LogWarning("CHttpServerApp::RspQueryField(RspQueryField pointer is NULL, flow id: %u)", flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, flow);
         m_mapAsyncReqInfo.erase(nUniqueId);
 		return;
@@ -4805,16 +4804,16 @@ CAccessServerApp::RspQueryField(const RspJobQueryFieldList* packet, unsigned int
 
     SendHttpRspByUniqueId(result, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspQueryField(ok. flow id: %u, job id: %d)", flow, job_id);
+	LogDebug("CHttpServerApp::RspQueryField(ok. flow id: %u, job id: %d)", flow, job_id);
 }
 
 void
-CAccessServerApp::RspQuerySelect(RspJobQuerySelect* packet, unsigned int nUniqueId, unsigned int nIp)
+CHttpServerApp::RspQuerySelect(RspJobQuerySelect* packet, unsigned int nUniqueId, unsigned int nIp)
 {
     unsigned int flow = nUniqueId;
 
 	if(packet == NULL){
-		LogWarning("CAccessServerApp::RspQuerySelect(RspQuerySelect pointer is NULL, flow id: %u)", flow);
+		LogWarning("CHttpServerApp::RspQuerySelect(RspQuerySelect pointer is NULL, flow id: %u)", flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, flow);
         m_mapAsyncReqInfo.erase(nUniqueId);
 		return;
@@ -4844,17 +4843,17 @@ CAccessServerApp::RspQuerySelect(RspJobQuerySelect* packet, unsigned int nUnique
     result["append"] = m_mapAsyncReqInfo[nUniqueId].append;
     SendHttpRspByUniqueId(result, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspQueryField(ok. flow id: %u)", flow);
+	LogDebug("CHttpServerApp::RspQueryField(ok. flow id: %u)", flow);
 }
 
 void
-CAccessServerApp::RspDelete(const RspJobDeleteList* packet, unsigned int nUniqueId, unsigned int nIp)
+CHttpServerApp::RspDelete(const RspJobDeleteList* packet, unsigned int nUniqueId, unsigned int nIp)
 {
 	RspJobDelete* rspDelete = packet->First();
     unsigned int flow = nUniqueId;
 
 	if(rspDelete == NULL){
-		LogInfo("CAccessServerApp::RspDelete(RspDelete pointer is NULL, flow id: %u)", flow);
+		LogInfo("CHttpServerApp::RspDelete(RspDelete pointer is NULL, flow id: %u)", flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, flow);
         m_mapAsyncReqInfo.erase(nUniqueId);
 		return;
@@ -4879,15 +4878,15 @@ CAccessServerApp::RspDelete(const RspJobDeleteList* packet, unsigned int nUnique
     SendHttpRspByUniqueId(result, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
 
-	LogDebug("CAccessServerApp::RspDelete(ok. flow id: %u)", flow);
+	LogDebug("CHttpServerApp::RspDelete(ok. flow id: %u)", flow);
 }
 
 /*
 void
-CAccessServerApp::RspQuerySys(RspJobQuerySys* packet, unsigned int id, unsigned int nIp) 
+CHttpServerApp::RspQuerySys(RspJobQuerySys* packet, unsigned int id, unsigned int nIp) 
 {
 	if(packet == NULL){
-		LogDebug("CAccessServerApp::RspQuerySys(RspQuerySys pointer is NULL)");
+		LogDebug("CHttpServerApp::RspQuerySys(RspQuerySys pointer is NULL)");
 		m_mapAsyncReqInfo.erase(id);
 		return;
 	}
@@ -4904,7 +4903,7 @@ CAccessServerApp::RspQuerySys(RspJobQuerySys* packet, unsigned int id, unsigned 
 }
 */
 
-void CAccessServerApp::RspCreateBatch(RspJobCreateList* packet,
+void CHttpServerApp::RspCreateBatch(RspJobCreateList* packet,
         unsigned int nIp,
         unsigned short nPort,
         unsigned int nUniqueId
@@ -4917,7 +4916,7 @@ void CAccessServerApp::RspCreateBatch(RspJobCreateList* packet,
 
 	if (it == NULL) {
 		LogWarning(
-				"CAccessServerApp::RspCreateBatch( RspJobCreateList pointer is NULL, flow id: %u)",
+				"CHttpServerApp::RspCreateBatch( RspJobCreateList pointer is NULL, flow id: %u)",
 				flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON,
 				flow);
@@ -4948,10 +4947,10 @@ void CAccessServerApp::RspCreateBatch(RspJobCreateList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspCreate2Batch(ok! flow id: %u)", flow);
+	LogDebug("CHttpServerApp::RspCreate2Batch(ok! flow id: %u)", flow);
 }
 
-void CAccessServerApp::RspSetActionBatch(RspJobSetActionList* packet,
+void CHttpServerApp::RspSetActionBatch(RspJobSetActionList* packet,
         unsigned int nUniqueId,
         unsigned int ip
         ) {
@@ -4963,7 +4962,7 @@ void CAccessServerApp::RspSetActionBatch(RspJobSetActionList* packet,
 
 	if (it == NULL) {
 		LogWarning(
-				"CAccessServerApp::RspSetActionBatch( RspJobSetActionList pointer is NULL, flow id: %u)",
+				"CHttpServerApp::RspSetActionBatch( RspJobSetActionList pointer is NULL, flow id: %u)",
 				flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON,
 				flow);
@@ -4993,11 +4992,11 @@ void CAccessServerApp::RspSetActionBatch(RspJobSetActionList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspSetActionBatch(ok! flow id: %u)", flow);
+	LogDebug("CHttpServerApp::RspSetActionBatch(ok! flow id: %u)", flow);
 
 }
 
-void CAccessServerApp::RspUpdateBatch(RspJobUpdateList* packet,
+void CHttpServerApp::RspUpdateBatch(RspJobUpdateList* packet,
         unsigned int nUniqueId,
         unsigned int ip
         ) {
@@ -5009,7 +5008,7 @@ void CAccessServerApp::RspUpdateBatch(RspJobUpdateList* packet,
 
 	if (it == NULL) {
 		LogWarning(
-				"CAccessServerApp::RspUpdateBatch( RspJobUpdateList pointer is NULL, flow id: %u)",
+				"CHttpServerApp::RspUpdateBatch( RspJobUpdateList pointer is NULL, flow id: %u)",
 				flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON,
 				flow);
@@ -5039,11 +5038,11 @@ void CAccessServerApp::RspUpdateBatch(RspJobUpdateList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspUpdateBatch(ok! flow id: %u)", flow);
+	LogDebug("CHttpServerApp::RspUpdateBatch(ok! flow id: %u)", flow);
 
 }
 
-void CAccessServerApp::RspQueryBatch(RspJobQueryAllList* packet,
+void CHttpServerApp::RspQueryBatch(RspJobQueryAllList* packet,
         unsigned int nUniqueId,
         unsigned int ip
         ) {
@@ -5055,7 +5054,7 @@ void CAccessServerApp::RspQueryBatch(RspJobQueryAllList* packet,
 
 	if (it == NULL) {
 		LogWarning(
-				"CAccessServerApp::RspQueryBatch( RspJobQueryAllList pointer is NULL, flow id: %u)",
+				"CHttpServerApp::RspQueryBatch( RspJobQueryAllList pointer is NULL, flow id: %u)",
 				flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON,
 				flow);
@@ -5087,11 +5086,11 @@ void CAccessServerApp::RspQueryBatch(RspJobQueryAllList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspQueryBatch(ok! flow id: %u)", flow);
+	LogDebug("CHttpServerApp::RspQueryBatch(ok! flow id: %u)", flow);
 
 }
 
-void CAccessServerApp::RspQueryFieldBatch(RspJobQueryFieldList* packet,
+void CHttpServerApp::RspQueryFieldBatch(RspJobQueryFieldList* packet,
         unsigned int nUniqueId,
         unsigned int ip
         ) {
@@ -5103,7 +5102,7 @@ void CAccessServerApp::RspQueryFieldBatch(RspJobQueryFieldList* packet,
 
 	if (it == NULL) {
 		LogWarning(
-				"CAccessServerApp::RspQueryFieldBatch( RspJobQueryFieldList pointer is NULL, flow id: %u)",
+				"CHttpServerApp::RspQueryFieldBatch( RspJobQueryFieldList pointer is NULL, flow id: %u)",
 				flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON,
 				flow);
@@ -5172,10 +5171,10 @@ void CAccessServerApp::RspQueryFieldBatch(RspJobQueryFieldList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspQueryFieldBatch(ok! flow id: %u)", flow);
+	LogDebug("CHttpServerApp::RspQueryFieldBatch(ok! flow id: %u)", flow);
 }
 
-void CAccessServerApp::RspDeleteBatch(RspJobDeleteList* packet,
+void CHttpServerApp::RspDeleteBatch(RspJobDeleteList* packet,
         unsigned int nUniqueId,
         unsigned int ip
         ) {
@@ -5187,7 +5186,7 @@ void CAccessServerApp::RspDeleteBatch(RspJobDeleteList* packet,
 
 	if (it == NULL) {
 		LogWarning(
-				"CAccessServerApp::RspDeleteBatch( RspJobDeleteList pointer is NULL, flow id: %u)",
+				"CHttpServerApp::RspDeleteBatch( RspJobDeleteList pointer is NULL, flow id: %u)",
 				flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON,
 				flow);
@@ -5216,10 +5215,10 @@ void CAccessServerApp::RspDeleteBatch(RspJobDeleteList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspDeleteBatch(ok! flow id: %u)", flow);
+	LogDebug("CHttpServerApp::RspDeleteBatch(ok! flow id: %u)", flow);
 }
 
-void CAccessServerApp::RspSequenceCreate(RspSerialJobCreateList* packet,
+void CHttpServerApp::RspSequenceCreate(RspSerialJobCreateList* packet,
             unsigned int nUniqueId,
             unsigned int ip
             ) {
@@ -5229,7 +5228,7 @@ void CAccessServerApp::RspSequenceCreate(RspSerialJobCreateList* packet,
 	RspSerialJobCreate* it = packet->First();
 
 	if (it == NULL){
-		LogWarning("CAccessServerApp::RspSequenceCreate(RspSerialJobCreate pointer is NULL, flow id: %u)", flow);
+		LogWarning("CHttpServerApp::RspSequenceCreate(RspSerialJobCreate pointer is NULL, flow id: %u)", flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, flow);
         m_mapAsyncReqInfo.erase(nUniqueId);
 		return;
@@ -5242,10 +5241,10 @@ void CAccessServerApp::RspSequenceCreate(RspSerialJobCreateList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspSequenceCreate(ok! flow id: %u", flow);
+	LogDebug("CHttpServerApp::RspSequenceCreate(ok! flow id: %u", flow);
 }
 
-void CAccessServerApp::RspSequenceErase(RspSerialJobEraseList* packet,
+void CHttpServerApp::RspSequenceErase(RspSerialJobEraseList* packet,
                 unsigned int nUniqueId,
                 unsigned int ip
                 ) {
@@ -5255,7 +5254,7 @@ void CAccessServerApp::RspSequenceErase(RspSerialJobEraseList* packet,
 	RspSerialJobErase* it = packet->First();
 
 	if (it == NULL){
-		LogWarning("CAccessServerApp::RspSequenceErase(RspSerialJobErase pointer is NULL, flow id: %u)",
+		LogWarning("CHttpServerApp::RspSequenceErase(RspSerialJobErase pointer is NULL, flow id: %u)",
                 flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, flow);
         m_mapAsyncReqInfo.erase(nUniqueId);
@@ -5269,10 +5268,10 @@ void CAccessServerApp::RspSequenceErase(RspSerialJobEraseList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspSequenceErase(ok! flow id: %u", flow);
+	LogDebug("CHttpServerApp::RspSequenceErase(ok! flow id: %u", flow);
 }
 
-void CAccessServerApp::RspSequenceDelete(RspSerialJobDeleteList* packet,
+void CHttpServerApp::RspSequenceDelete(RspSerialJobDeleteList* packet,
                 unsigned int nUniqueId,
                 unsigned int ip
                 ) {
@@ -5284,7 +5283,7 @@ void CAccessServerApp::RspSequenceDelete(RspSerialJobDeleteList* packet,
 
 	if (it == NULL) {
 		LogWarning(
-				"CAccessServerApp::RspSequenceDelete(RspSerialJobErase pointer is NULL, flow id: %u)",
+				"CHttpServerApp::RspSequenceDelete(RspSerialJobErase pointer is NULL, flow id: %u)",
 				flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON,
 				flow);
@@ -5305,17 +5304,17 @@ void CAccessServerApp::RspSequenceDelete(RspSerialJobDeleteList* packet,
 
     SendHttpRspByUniqueId(response, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspSequenceDelete(ok! flow id: %u", flow);
+	LogDebug("CHttpServerApp::RspSequenceDelete(ok! flow id: %u", flow);
 }
 
-void CAccessServerApp::RspQueryTime(const RspJobQueryFieldList* packet,
+void CHttpServerApp::RspQueryTime(const RspJobQueryFieldList* packet,
         unsigned int nUniqueId,
         unsigned int nIp){
 	RspJobQueryField* rspQueryField = packet->First();
     unsigned int flow = nUniqueId;
 
 	if(rspQueryField == NULL){
-		LogWarning("CAccessServerApp::RspQueryTime(RspQueryField pointer is NULL, flow id: %u)", flow);
+		LogWarning("CHttpServerApp::RspQueryTime(RspQueryField pointer is NULL, flow id: %u)", flow);
 		SendErrHttpRsp(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, flow);
         m_mapAsyncReqInfo.erase(nUniqueId);
 		return;
@@ -5339,7 +5338,7 @@ void CAccessServerApp::RspQueryTime(const RspJobQueryFieldList* packet,
 		int retNum = (int) (it->retNum->value);
 
 		if (field != JOB_FIELD_STEP_TIME2){
-			LogWarning("CAccessServerApp::RspQueryTime(field is not JOB_FIELD_STEP_TIME2, job id: %u)", job_id);
+			LogWarning("CHttpServerApp::RspQueryTime(field is not JOB_FIELD_STEP_TIME2, job id: %u)", job_id);
 		}
 
 		int flag = (retNum & 0x80000000) >> 31;
@@ -5351,18 +5350,18 @@ void CAccessServerApp::RspQueryTime(const RspJobQueryFieldList* packet,
 			result["tsc_time"] = (int)(retNum & 0x001FFFFF);
 			result["ajs_time"] = (int)((retNum & 0x7FE00000) >> 21);
 		}
-		LogDebug("CAccessServerApp::RspQueryTime(job id: %u, field: %d, ret num: %d)",  field, retNum);
+		LogDebug("CHttpServerApp::RspQueryTime(job id: %u, field: %d, ret num: %d)",  field, retNum);
 	} else {
-		LogWarning("CAccessServerApp::RspQueryTime(field is NULL, flow id: %u)", flow);
+		LogWarning("CHttpServerApp::RspQueryTime(field is NULL, flow id: %u)", flow);
 	}
 
     SendHttpRspByUniqueId(result, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-	LogDebug("CAccessServerApp::RspQueryTime(ok. flow id: %u, job id: %d)", flow, job_id);
+	LogDebug("CHttpServerApp::RspQueryTime(ok. flow id: %u, job id: %d)", flow, job_id);
 
 }
 
-void CAccessServerApp::RspQueryAJSAgent(RspJobQueryAJSAgent* packet,
+void CHttpServerApp::RspQueryAJSAgent(RspJobQueryAJSAgent* packet,
         unsigned int nUniqueId,
         unsigned int ip){
 
@@ -5388,10 +5387,10 @@ void CAccessServerApp::RspQueryAJSAgent(RspJobQueryAJSAgent* packet,
 
     SendHttpRspByUniqueId(result, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-    LogDebug("CAccessServerApp::RspQueryTSCAgent(ok. flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::RspQueryTSCAgent(ok. flow id: %u)", nUniqueId);
 }
 
-void CAccessServerApp::RspQueryTSCAgent(RspJobQueryTSCAgent* packet,
+void CHttpServerApp::RspQueryTSCAgent(RspJobQueryTSCAgent* packet,
         unsigned int nUniqueId,
         unsigned int ip){
 
@@ -5417,10 +5416,10 @@ void CAccessServerApp::RspQueryTSCAgent(RspJobQueryTSCAgent* packet,
 
     SendHttpRspByUniqueId(result, nUniqueId);
     m_mapAsyncReqInfo.erase(nUniqueId);
-    LogDebug("CAccessServerApp::RspQueryTSCAgent(ok. flow id: %u)", nUniqueId);
+    LogDebug("CHttpServerApp::RspQueryTSCAgent(ok. flow id: %u)", nUniqueId);
 }
 
-unsigned int CAccessServerApp::GetEmptyUniqueID(unsigned int nClientId, unsigned int nSessionId) {
+unsigned int CHttpServerApp::GetEmptyUniqueID(unsigned int nClientId, unsigned int nSessionId) {
     static unsigned int g_nNowUniqueId = (unsigned int)time(0);
 
     map<unsigned int, unsigned long long>::iterator result;
@@ -5435,18 +5434,18 @@ unsigned int CAccessServerApp::GetEmptyUniqueID(unsigned int nClientId, unsigned
     return g_nNowUniqueId;
 }
 
-int CAccessServerApp::SendPacketToCCD(CHttpRspPkt& packet, unsigned int nFlow)
+int CHttpServerApp::SendPacketToCCD(CHttpRspPkt& packet, unsigned int nFlow)
 {
 	int ret = SendDataMCD2CCD(packet.Head(), packet.Length(), nFlow);
 	if (ret != 0){
-		LogWarning("CAccessServerApp::SendPacketToCCD(SendDataMCD2CCD() failed)");
+		LogWarning("CHttpServerApp::SendPacketToCCD(SendDataMCD2CCD() failed)");
 		return ret;
 	}
 	return 0;
 }
 
 template<typename Type> 
-int CAccessServerApp::SendPacketToDCC(Type& obj, enum Ajs::ChoiceIdEnum nType, unsigned int nAppend, unsigned int nIp, unsigned short nPort)
+int CHttpServerApp::SendPacketToDCC(Type& obj, enum Ajs::ChoiceIdEnum nType, unsigned int nAppend, unsigned int nIp, unsigned short nPort)
 {
 	LogAsnObj(LOG_LEVEL_LOWEST, obj);
 	AjsPacket jobPacket;
@@ -5465,7 +5464,7 @@ int CAccessServerApp::SendPacketToDCC(Type& obj, enum Ajs::ChoiceIdEnum nType, u
 		return ret;
 	}
 
-	LogDebug("CAccessServerApp::SendPacketToDCC(send packet to dcc ok! append: %u, server_ip: %s, server_port: %hu)",
+	LogDebug("CHttpServerApp::SendPacketToDCC(send packet to dcc ok! append: %u, server_ip: %s, server_port: %hu)",
 			nAppend, IpIntToString(nIp).c_str(), nPort);
 
 	return 0;
@@ -5473,6 +5472,6 @@ int CAccessServerApp::SendPacketToDCC(Type& obj, enum Ajs::ChoiceIdEnum nType, u
 
 extern "C" {
 	tfc::cache::CacheProc* create_app() {
-		return new CAccessServerApp();
+		return new CHttpServerApp();
 	}
 }

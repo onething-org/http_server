@@ -167,7 +167,6 @@ private:
         return NULL;
     }
 
-
 private:
     tfc::net::CFifoSyncMQ* m_pMQCCD2MCD;
     tfc::net::CFifoSyncMQ* m_pMQMCD2CCD;

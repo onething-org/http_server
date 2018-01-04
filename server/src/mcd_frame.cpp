@@ -9,7 +9,7 @@ const unsigned char FLG_CTRL_QUIT = 0x02;
 static CCheckFlag g_checkFlag;
 int g_nLogStrLen = 1024;
 
-void PrintStr(const string& prompt, const string &content, unsigned int lenth, unsigned int flow)
+void PrintStr(const string &prompt, const string &content, unsigned int lenth, unsigned int flow)
 {
 	string format = prompt;
 	format += "%-.";
@@ -31,17 +31,11 @@ static void sigusr2_handle(int sig_val) {
     signal(SIGUSR2, sigusr2_handle);
 }
 
-
-
-
 void CTimeout::on_expire() {
     m_pMCDFrame->OnExpire(this->_msg_seq);
 }
 
-
-
-
-int CMCDFrame::Init(const std::string& conf_file) {
+int CMCDFrame::Init(const std::string &conf_file) {
     try {
 		m_page.Init(conf_file);
 
@@ -59,14 +53,14 @@ int CMCDFrame::Init(const std::string& conf_file) {
 
         m_lastCheckTime = time(NULL);
     }
-    catch (exception& ex) {
+    catch (exception &ex) {
         return -1;
     }
 
     return 0;
 }
 
-void CMCDFrame::run(const std::string& conf_file) {
+void CMCDFrame::run(const std::string &conf_file) {
     if (Init(conf_file))
         return;
 
@@ -92,7 +86,6 @@ void CMCDFrame::run(const std::string& conf_file) {
 
     while  (!stop) {
         if (CheckFlags() > 0) {
-            //DEBUG_P(LOG_DEBUG, "(%s:%d)Recv signal, quit!\n", __FILE__, __LINE__);
             break;
         }
 
@@ -151,8 +144,7 @@ int CMCDFrame::DispatchCCD() {
                 break;
         }
     }
-    catch (exception& ex) {
-        //DEBUG_P(LOG_ERROR, "dispatch_ccd: ,errInfo:%s ! \n",ex.what());
+    catch (exception &ex) {
         return -1;
     }
 
@@ -202,44 +194,19 @@ int CMCDFrame::DispatchDCC() {
                 break;
         }
     }
-    catch( exception& ex) {
-        //DEBUG_P(LOG_ERROR, "dispatch_ccd: ,errInfo:%s ! \n",ex.what());
+    catch( exception &ex) {
         return -1;
     }
 
     return 0;
 }
 
-/*
-int CMCDFrame::SendDataMCD2DCC(AjsPacket& packet, unsigned int nIp, unsigned short nPort)
-{
-	size_t head_len = sizeof(TDCCHeader);
-	int nSize = 0;
-
-	char* pTemp = SerializeToBufferPrivate(nSize, packet, head_len);
-	if (pTemp != NULL ) {
-		TDCCHeader dccheader;
-		dccheader._ip = nIp;
-		dccheader._port = nPort;
-		dccheader._type = dcc_req_send;
-
-		pTemp -= head_len;
-		memcpy(pTemp, &dccheader, head_len);
-
-		unsigned int nFlow = (nIp >> 16) + (nPort << 16);
-		return m_pMQMCD2DCC->enqueue(pTemp, nSize + head_len, nFlow);
-	} else {
-		return -1;
-	}
-}
-*/
-
-int CMCDFrame::SendDataMCD2CCD(const char* pData, unsigned int nSize, unsigned int nFlow) {
+int CMCDFrame::SendDataMCD2CCD(const char *pData, unsigned int nSize, unsigned int nFlow) {
 	size_t head_len = sizeof(TCCDHeader);
-	if(m_nPacketBufSize < (int)(head_len + nSize)){
+	if (m_nPacketBufSize < (int)(head_len + nSize)) {
 		m_nPacketBufSize = nSize + head_len;
 		free(m_pPacketBuf);
-		m_pPacketBuf = (char *) malloc(m_nPacketBufSize);
+		m_pPacketBuf = (char *)malloc(m_nPacketBufSize);
 	}
 
 	TCCDHeader ccdHeader;
@@ -276,7 +243,7 @@ void CMCDFrame::AddToTimeoutQueue(unsigned int id, unsigned int gap/* = 10*/) {
     // 注意：在超时处理函数中调用该函数时，如果再添加新的超时，并且新的id跟当前正在超时的id一样，则会出问题，根本原因是对map的操作
     DeleteFromTimeoutQueue(id);
 
-    CTimeout* pInfo = new CTimeout(this);
+    CTimeout *pInfo = new CTimeout(this);
     m_timeOutQueue.set(id, pInfo, gap);
 }
 
@@ -297,8 +264,8 @@ void CMCDFrame::AdjustAsnBufToDefault() {
 
     free(m_pPacketBuf);
     m_nPacketBufSize = JOB_SERVER_ASN_BUF_SIZE;
-    m_pPacketBuf = (char*) malloc(m_nPacketBufSize);
-    if (m_pPacketBuf == NULL){
+    m_pPacketBuf = (char*)malloc(m_nPacketBufSize);
+    if (m_pPacketBuf == NULL) {
 		LogError("CMCDFrame::AdjustAsnBufToDefault(m_pPacketBuf == NULL)");
         exit(EXIT_FAILURE);
 	}

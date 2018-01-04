@@ -9,7 +9,6 @@ using namespace std;
 using namespace mtnc_lib;
 using namespace mysqlpp;
 
-
 typedef struct __CLIENT_INFO {
 	bool enable;
 	string passwd;
@@ -17,7 +16,7 @@ typedef struct __CLIENT_INFO {
 
 class CAccessServerApp;
 
-class CClientAuth:  public CThread {
+class CClientAuth: public CThread {
 public:
 	CClientAuth(CAccessServerApp *ptr);
 	virtual ~CClientAuth();

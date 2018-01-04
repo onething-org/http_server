@@ -1,6 +1,6 @@
 include ../include_tfc.mk
 
-TARGET = ../bin/access_mcd_run.so
+TARGET = ../bin/http_mcd_run.so
 
 CC = gcc
 CXX = g++
@@ -28,7 +28,7 @@ all: $(TARGET)
 
 $(TARGET):$(OBJ) $(CPP_OBJS) $(C_OBJS)
 	$(CXX) $(CFLAGS) -shared -o $@ $^ $(LIB)
-	cp $(TARGET) ../dist/access_server/bin/
+	cp $(TARGET) ../dist/http_server/bin/
 	
 ../obj/%.o: %.cpp
 	$(CXX) $(CFLAGS) $(INC) -fpic -c -o $@ $< 
@@ -40,11 +40,11 @@ clean:
 	rm -frv $(CPP_OBJS) $(C_OBJS) $(TARGET)
 
 install:
-	cp $(CCD)http_complete.so ../dist/access_server/bin/ 
-	cp $(CCD)asn_complete.so ../dist/access_server/bin/ 
-	cp $(CCD)ccd ../dist/access_server/bin/access_server_ccd
-	cp $(MCD)mcd ../dist/access_server/bin/access_server_mcd
-	cp $(DCC)dcc ../dist/access_server/bin/access_server_dcc 
-	cp $(WATCHDOG)watchdog ../dist/access_server/bin/access_server_watchdog 
+	cp $(CCD)http_complete.so ../dist/http_server/bin/ 
+	cp $(CCD)asn_complete.so ../dist/http_server/bin/ 
+	cp $(CCD)ccd ../dist/http_server/bin/http_server_ccd
+	cp $(MCD)mcd ../dist/http_server/bin/http_server_mcd
+	cp $(DCC)dcc ../dist/http_server/bin/http_server_dcc 
+	cp $(WATCHDOG)watchdog ../dist/http_server/bin/http_server_watchdog 
 
 live: clean all
