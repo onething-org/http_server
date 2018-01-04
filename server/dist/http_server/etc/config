@@ -1,0 +1,46 @@
+ajust_buffer_time_interval = 43200
+default_buf_size = 16384
+default_client_module = 0
+default_data = 
+default_err_deal = 0
+default_signal = 0
+default_step = 0
+default_time_out = 60
+default_user = root
+if_print_job_server_infos = 0
+job_server_time_out = 10
+clear_async_job_time_interval = 600
+js_server_info = 0:172.25.10.33:32769|1:172.25.10.66:32769:31,39|2:172.25.10.24:32769:43,44,45,46|4:172.25.10.104:32769:62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82|5:172.25.10.107:32769:83,84,85,90,92,93,94
+log_file = ../log/access_server
+log_level = LOG_LEVEL_DEBUG
+log_statistic_time_interval = 180
+no_access_control = 1
+create_sync_query_time_interval = 30
+stat_file = ../log/stat
+valid_ip_info = 10.130.28.228|10.130.14.74
+create_sync_query_retry_count = 2
+
+user_info_db = ajs
+user_info_host = 172.25.10.24
+user_info_user = root
+user_info_password = 
+user_info_port = 3306
+update_client_auth_time_interval = 300
+
+log_file_max_num = 50
+log_file_max_size = 20
+
+log_str_length = 1024
+max_per_page = 1000
+max_std_out = 6291456
+
+max_create_batch_count = 1000
+max_query_batch_count = 1000
+max_query_field_batch_count = 2000
+
+#max_http_packet_length = 5242880
+max_http_packet_length = 20971520
+
+serial_server_ip = 172.25.10.24
+serial_server_port = 32771
+serial_server_schedule_time_interval = 0

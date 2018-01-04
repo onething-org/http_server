@@ -1,0 +1,37 @@
+#!/usr/bin/expect
+set timeout 5
+
+if { [llength $argv] < 4} {
+	puts "Usage: "
+	puts "$argv0 cmd user passwd ip"
+	exit 1
+}
+
+set cmd [lindex $argv 0]
+set user [lindex $argv 1]
+set passwd [lindex $argv 2]
+set ip [lindex $argv 3]
+
+set passwderror 0
+
+spawn /usr/local/bin/ssh -q -p36000 $ip -l$user "$cmd"
+expect {
+	"*assword:*" {
+		if { $passwderror == 1 } {
+			puts "passwd is error"
+			exit 2
+		}
+		set timeout 120
+		set passwderror 1
+		send "$passwd\r" 
+		exp_continue
+	}
+	"*es/no)?*" {
+		send "yes\r"
+		exp_continue
+	}
+	timeout {
+		puts "connect is timeout"
+		exit 3
+	}
+}

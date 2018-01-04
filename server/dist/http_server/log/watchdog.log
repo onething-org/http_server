@@ -1,0 +1,41 @@
+[2012-09-03 16:32:06] Watchdog strict check enabled!
+[2012-09-03 16:32:06] Launching watchdog...
+[2012-09-03 16:32:06] Deadlock kill not enabled!
+[2012-09-03 16:32:06] watchdog-1.0.7
+[2012-09-03 16:32:06] Process command line "./access_server_ccd ../etc/access_server_ccd.conf nofork" loaded!
+[2012-09-03 16:32:06] Process command line "./access_server_mcd ../etc/access_server_mcd.conf nofork" loaded!
+[2012-09-03 16:32:06] Process command line "./access_server_dcc ../etc/access_server_dcc.conf nofork" loaded!
+[2012-09-03 16:32:06] Run as daemon.
+[2012-09-03 16:32:06] Wtg ioctl fail when get "eth0" IP. Cannot assign requested address
+[2012-09-03 16:32:06] Wtg "eth1" IP - -754727414 "10.198.3.211".
+[2012-09-03 16:32:06] Wtg load configuration successed!
+[2012-09-03 16:32:07] Wtg main PORT 9771.
+[2012-09-03 16:32:07] Wtg daemon start! Version: "wtg-1.0.2"
+[2012-09-03 16:32:07] Wtg start successfully!
+[2012-09-03 16:32:07] Start process item 0 - "./access_server_ccd"...
+[2012-09-03 16:32:07] Start process item 1 - "./access_server_mcd"...
+[2012-09-03 16:32:07] Start process item 2 - "./access_server_dcc"...
+[2012-09-03 16:32:07] Watchdog start!
+[2012-09-03 16:34:48] Kill process item 0 - "./access_server_ccd".
+[2012-09-03 16:34:48] Kill process item 1 - "./access_server_mcd".
+[2012-09-03 16:34:48] Kill process item 2 - "./access_server_dcc".
+[2012-09-03 16:34:48] Prepare stop watchdog...
+[2012-09-03 16:34:48] Watchdog strict check enabled!
+[2012-09-03 16:34:48] Launching watchdog...
+[2012-09-03 16:34:48] Deadlock kill not enabled!
+[2012-09-03 16:34:48] watchdog-1.0.7
+[2012-09-03 16:34:48] Process command line "./access_server_ccd ../etc/access_server_ccd.conf nofork" loaded!
+[2012-09-03 16:34:48] Process command line "./access_server_mcd ../etc/access_server_mcd.conf nofork" loaded!
+[2012-09-03 16:34:48] Process command line "./access_server_dcc ../etc/access_server_dcc.conf nofork" loaded!
+[2012-09-03 16:34:48] Run as daemon.
+[2012-09-03 16:34:48] Wtg ioctl fail when get "eth0" IP. Cannot assign requested address
+[2012-09-03 16:34:48] Wtg "eth1" IP - -754727414 "10.198.3.211".
+[2012-09-03 16:34:48] Wtg load configuration successed!
+[2012-09-03 16:34:49] Wtg main PORT 9771.
+[2012-09-03 16:34:49] Wtg daemon start! Version: "wtg-1.0.2"
+[2012-09-03 16:34:49] Wtg start successfully!
+[2012-09-03 16:34:49] Start process item 0 - "./access_server_ccd"...
+[2012-09-03 16:34:49] Start process item 1 - "./access_server_mcd"...
+[2012-09-03 16:34:49] Start process item 2 - "./access_server_dcc"...
+[2012-09-03 16:34:49] Watchdog start!
+[2012-09-03 17:09:49] Wtg found a timeout UNIX domain connection "14".
