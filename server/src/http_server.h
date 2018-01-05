@@ -141,20 +141,15 @@ public:
 
 private:
 	template<typename Type> 
-	int SendPacketToDCC(Type& obj, 
-			enum Ajs::ChoiceIdEnum nType,
-		   	unsigned int nAppend,
-		   	unsigned int nIp,
-		   	unsigned short nPort
-			);
-	int SendPacketToCCD(CHttpRspPkt& packet, unsigned int nFlow);
-	void SendHttpRsp(const Json::Value& response, unsigned int client_id );
-    void SendHttpRspByUniqueId(const Json::Value& response, unsigned int nUniqueId );
+	int SendPacketToDCC(Type& obj, enum Ajs::ChoiceIdEnum nType, unsigned int nAppend, unsigned int nIp, unsigned short nPort);
+	int SendPacketToCCD(CHttpRspPkt &packet, unsigned int nFlow);
+	void SendHttpRsp(const Json::Value &response, unsigned int client_id);
+    void SendHttpRspByUniqueId(const Json::Value &response, unsigned int nUniqueId);
 
     void ReqRiskyPort(Json::Value &request, unsigned int nUniqueId);
     void ReqWhiteList(Json::Value &request, unsigned int nUniqueId);
     void ReqNormalPort(Json::Value &request, unsigned int nUniqueId);
-    
+
     void ReqCreate(Json::Value &request, unsigned int nUniqueId);
     void ReqSetAction(Json::Value &request, unsigned int nUniqueId);
     void ReqUpdate(Json::Value &request, unsigned int nUniqueId);
