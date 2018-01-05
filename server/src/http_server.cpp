@@ -1391,11 +1391,11 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 	}
 
 	//发送到dcc
-
 	pair<unsigned int, unsigned short> server_info;
-	if ( GetJobServerByClientModule((int)packet->clientModule, server_info) ) {
-
-        if (g_strProxyType == "create_sync" || g_strProxyType == "create_sync2"){
+	if (GetJobServerByClientModule((int)packet->clientModule, server_info))
+	{
+        if (g_strProxyType == "create_sync" || g_strProxyType == "create_sync2")
+        {
             SyncReqInfo info;
             info.ccd_flow = m_nFlow;
             info.append = m_nNowAppend;
@@ -1429,16 +1429,21 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
         }
 
         int ret = SendPacketToDCC(reqPacket, Ajs::reqJobCreateListCid, nUniqueId, server_info.first, server_info.second);
-		if (ret != 0){
-            LogWarning("CHttpServerApp::ReqCreate(SendPacketToDCC failed! flow id: %u)",
-                    nUniqueId);
+		if (ret != 0)
+		{
+            LogWarning("CHttpServerApp::ReqCreate(SendPacketToDCC failed! flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
-            if (g_strProxyType == "create_sync" || g_strProxyType == "create_sync2"){
+            if (g_strProxyType == "create_sync" || g_strProxyType == "create_sync2")
+            {
             	//如果同步任务发送失败，需要清楚信息
                 m_mapSyncReqInfo.erase(nUniqueId);
                 DeleteFromTimeoutQueue(nUniqueId);
             }
-            else m_mapAsyncReqInfo.erase(nUniqueId);
+            else 
+            {
+            	m_mapAsyncReqInfo.erase(nUniqueId);
+            }
+			
 			return;
 		}
 	} else {
