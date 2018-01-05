@@ -836,8 +836,7 @@ void CHttpServerApp::ChildAction()
 	//ProfilerStart("CPUProfile");
 }
 
-void CHttpServerApp::HandleJsonRequest(Json::Value &request,
-	   	unsigned int nFlow)
+void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
 {
 	LogJsonObj(LOG_LEVEL_LOWEST, request);
 
@@ -850,7 +849,8 @@ void CHttpServerApp::HandleJsonRequest(Json::Value &request,
 	string cmd_type = Trim(request["cmd_type"].asString());
 	int ret = CheckCmdType(cmd_type);
 
-	if (ret == -1){
+	if (ret == -1)
+	{
 		LogWarning("CHttpServerApp::HandleJsonRequest(Json:: cmd_type is invalid, flow id: %u)", nFlow);
 		SendErrHttpRsp(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'cmd_type',error:'invalid value'", nFlow);
 		return;
@@ -859,8 +859,13 @@ void CHttpServerApp::HandleJsonRequest(Json::Value &request,
 	g_strProxyType = cmd_type;
 
 	if (request["append"].isInt())
+	{
 		m_nNowAppend = request["append"].asUInt();
-	else m_nNowAppend = 0;
+	}
+	else
+	{
+		m_nNowAppend = 0;
+	}
 
     m_nFlow = nFlow;
     m_nUniqueId = GetEmptyUniqueID(m_nFlow, m_nNowAppend);
@@ -869,8 +874,7 @@ void CHttpServerApp::HandleJsonRequest(Json::Value &request,
 	LogDebug("CHttpServerApp::HandleJsonRequest(flow id: %u, cmd_type: %s, append: %u)",
 			nFlow, cmd_type.c_str(), m_nNowAppend);
 
-	if(cmd_type == "create" || cmd_type == "create2"
-			|| cmd_type == "create_sync2" || cmd_type == "create_sync") {
+	if (cmd_type == "create" || cmd_type == "create2" || cmd_type == "create_sync2" || cmd_type == "create_sync") {
 
         ReqCreate(request, m_nUniqueId);
 	} else if (cmd_type == "op") {
@@ -891,31 +895,31 @@ void CHttpServerApp::HandleJsonRequest(Json::Value &request,
 	} else if (cmd_type == "delete") {
 
         ReqDelete(request, m_nUniqueId);
-	} else if ( cmd_type == "create2_batch"){
+	} else if ( cmd_type == "create2_batch") {
 
         ReqCreateBatch(request, m_nUniqueId);
-	} else if ( cmd_type == "op_batch"){
+	} else if ( cmd_type == "op_batch") {
 
         ReqSetActionBatch(request, m_nUniqueId);
-	} else if ( cmd_type == "update_batch"){
+	} else if ( cmd_type == "update_batch") {
 
         ReqUpdateBatch(request, m_nUniqueId);
-	} else if ( cmd_type == "query2_batch"){
+	} else if ( cmd_type == "query2_batch") {
 
         ReqQueryBatch(request, m_nUniqueId);
-	} else if ( cmd_type == "query_field_batch"){
+	} else if ( cmd_type == "query_field_batch") {
 
         ReqQueryFieldBatch(request, m_nUniqueId);
-	} else if ( cmd_type == "delete_batch"){
+	} else if ( cmd_type == "delete_batch") {
 
         ReqDeleteBatch(request, m_nUniqueId);
-	} else if ( cmd_type == "sequence_create"){
+	} else if ( cmd_type == "sequence_create") {
 
         ReqSequenceCreate(request, m_nUniqueId);
-	} else if ( cmd_type == "sequence_erase"){
+	} else if ( cmd_type == "sequence_erase") {
 
         ReqSequenceErase(request, m_nUniqueId);
-	} else if ( cmd_type == "sequence_delete"){
+	} else if ( cmd_type == "sequence_delete") {
 
         ReqSequenceDelete(request, m_nUniqueId);
 	} else if ( cmd_type == "create_many") {
@@ -931,10 +935,9 @@ void CHttpServerApp::HandleJsonRequest(Json::Value &request,
 
         ReqQueryTSCAgent(request, m_nUniqueId);
 	}
-
 }
 
-void CHttpServerApp::SendErrHttpRsp(int code, const string& reason, unsigned int &nFlow)
+void CHttpServerApp::SendErrHttpRsp(int code, const string &reason, unsigned int &nFlow)
 {
 	Json::Value response;
 	response["errno"] = code;
@@ -945,7 +948,6 @@ void CHttpServerApp::SendErrHttpRsp(int code, const string& reason, unsigned int
 	CHttpRspPkt http_pkg(r_code_200, r_reason_200, rsp.c_str(), rsp.length());
 	SendPacketToCCD(http_pkg, nFlow);
 	m_nInvalidCcdRequest++;
-
 }
 
 void CHttpServerApp::SendErrHttpRspByUniqueId(int code, const string &reason, unsigned int &nUniqueId)
@@ -972,7 +974,8 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 
 	try{
 
-		if (req["json_job"].isNull() ){
+		if (req["json_job"].isNull())
+		{
             LogWarning("CHttpServerApp::ReqCreate(Json:: json_job is null, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'json_job',error:'empty value'", nUniqueId);
 			return;
@@ -980,95 +983,120 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 
 		Json::Value &request = req["json_job"];
 
-		if (!request.isObject()){
-            LogWarning("CHttpServerApp::ReqCreate(Json:: json_job is not a object, flow id: %u)",  nUniqueId);
+		if (!request.isObject())
+		{
+            LogWarning("CHttpServerApp::ReqCreate(Json:: json_job is not a object, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'json_job',error:'invalid value'", nUniqueId);
 			return;
 		}
 
 		//检查client_module
-		if(request.isMember("client_module") && request["client_module"].isInt()){
+		if (request.isMember("client_module") && request["client_module"].isInt())
+		{
 			packet->clientModule = request["client_module"].asInt();
 		}
-		else{
-            LogWarning("CHttpServerApp::ReqCreate(Json:: client_module is invalid, flow id: %u)",  nUniqueId);
+		else
+		{
+            LogWarning("CHttpServerApp::ReqCreate(Json:: client_module is invalid, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'client_module',error:'invalid value'", nUniqueId);
 			return;
 		}
 
 		string passwd;
-		if(request.isMember("client_passwd") && request["client_passwd"].isString()){
+		if (request.isMember("client_passwd") && request["client_passwd"].isString())
+		{
 			passwd = request["client_passwd"].asString();
-		} else {
-            LogWarning("CHttpServerApp::ReqCreate(Json:: client_passwd is invalid, flow id: %u)",  nUniqueId);
+		}
+		else
+		{
+            LogWarning("CHttpServerApp::ReqCreate(Json:: client_passwd is invalid, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'client_passwd',error:'invalid value'", nUniqueId);
 			return;
 		}
 
 
-		if (!ClientModuleAuth((int)(packet->clientModule), passwd)){
+		if (!ClientModuleAuth((int)(packet->clientModule), passwd))
+		{
             LogWarning("CHttpServerApp::ReqCreate(client_passwd is not correct, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(ACCESS_DENIED,ACCESS_DENIED_REASON +  "param:'client_passwd',error:'incorrect password'", nUniqueId);
 			return;
 		}
 
-
 		//检查run_mode
-		if (request["run_mode"].isString()){ 
+		if (request["run_mode"].isString())
+		{ 
 			string run_mode = Trim(request["run_mode"].asString());
 			int ret = CheckRunModule(run_mode);
 			if (ret != -1)
+			{
 				packet->flag = (int)(packet->flag) | ret;
-			else {
+			}
+			else
+			{
                 LogWarning("CHttpServerApp::ReqCreate(run_mode is invalid, flow id: %u)", nUniqueId);
                 SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'run_mode',error:'invalid value'", nUniqueId);
 				return;
 			}
-		} else if (!request["run_mode"].isNull()) {
+		}
+		else if (!request["run_mode"].isNull())
+		{
             LogWarning("CHttpServerApp::ReqCreate(run_mode is not a string, flow id: %u)", nUniqueId);
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'run_mode',error:'invalid value'", nUniqueId);
 			return;
 		}
 
 			//检查delete_mode
-			if (request["delete_mode"].isString()){ 
-				string delete_mode = Trim(request["delete_mode"].asString());
-				int ret = CheckDeleteModule(delete_mode);
-				if (ret != -1)
-					packet->flag = (int)(packet->flag) | ret;
-				else {
-                    LogWarning("CHttpServerApp::ReqCreate(delete_mode is invalid, flow id: %u)", nUniqueId);
-                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'delete_mode',error:'invalid value'", nUniqueId);
-					return;
-				}
-
-			} else if (!request["delete_mode"].isNull()) {
-                LogWarning("CHttpServerApp::ReqCreate(delete_mode is not a string, flow id: %u)", nUniqueId);
-                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON +  "param:'delete_mode',error:'invalid value'", nUniqueId);
+		if (request["delete_mode"].isString())
+		{ 
+			string delete_mode = Trim(request["delete_mode"].asString());
+			int ret = CheckDeleteModule(delete_mode);
+			if (ret != -1)
+			{
+				packet->flag = (int)(packet->flag) | ret;
+			}
+			else
+			{
+                LogWarning("CHttpServerApp::ReqCreate(delete_mode is invalid, flow id: %u)", nUniqueId);
+                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'delete_mode',error:'invalid value'", nUniqueId);
 				return;
 			}
+		}
+		else if (!request["delete_mode"].isNull())
+		{
+            LogWarning("CHttpServerApp::ReqCreate(delete_mode is not a string, flow id: %u)", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON +  "param:'delete_mode',error:'invalid value'", nUniqueId);
+			return;
+		}
 
 			//检查now_run
-			if (request["now_run"].isString()){ 
-				string now_run = Trim(request["now_run"].asString());
-				int ret = CheckNowRun(now_run);
-				if (ret != -1)
-					packet->flag = (int)(packet->flag) | ret;
-				else {
-                    LogWarning("CHttpServerApp::ReqCreate(now_run is invalid, flow id: %u)", nUniqueId);
-                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'now_run',error:'invalid value'", nUniqueId);
-					return;
-				}
-
-			} else if (!request["now_run"].isNull()){
-                LogWarning("CHttpServerApp::ReqCreate(now_run is not a string, flow id: %u)", nUniqueId);
-                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'now_run',error:'invalid value'", nUniqueId);
-				return;
-			} else {
-				packet->flag = (int)(packet->flag) | AJS_FLAG_NOW_RUN_IMMEDIATE_NOT_MANUAL; 
+		if (request["now_run"].isString())
+		{ 
+			string now_run = Trim(request["now_run"].asString());
+			int ret = CheckNowRun(now_run);
+			if (ret != -1)
+			{
+				packet->flag = (int)(packet->flag) | ret;
 			}
+			else
+			{
+                LogWarning("CHttpServerApp::ReqCreate(now_run is invalid, flow id: %u)", nUniqueId);
+                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'now_run',error:'invalid value'", nUniqueId);
+				return;
+			}
+		}
+		else if (!request["now_run"].isNull())
+		{
+            LogWarning("CHttpServerApp::ReqCreate(now_run is not a string, flow id: %u)", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'now_run',error:'invalid value'", nUniqueId);
+			return;
+		}
+		else
+		{
+			packet->flag = (int)(packet->flag) | AJS_FLAG_NOW_RUN_IMMEDIATE_NOT_MANUAL; 
+		}
 
-		if (g_strProxyType == "create_sync" || g_strProxyType == "create_sync2") {
+		if (g_strProxyType == "create_sync" || g_strProxyType == "create_sync2")
+		{
 			packet->flag = (int)(packet->flag) | AJS_FLAG_NOW_RUN_IMMEDIATE_NOT_MANUAL;
 			packet->flag = (int)(packet->flag) | AJS_FLAG_CREATE_SYNC;
 		}
