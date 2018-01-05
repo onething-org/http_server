@@ -874,7 +874,15 @@ void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
 	LogDebug("CHttpServerApp::HandleJsonRequest(flow id: %u, cmd_type: %s, append: %u)",
 			nFlow, cmd_type.c_str(), m_nNowAppend);
 
-	if (cmd_type == "create" || cmd_type == "create2" || cmd_type == "create_sync2" || cmd_type == "create_sync") {
+	if (cmd_type == "risky_port") {
+		ReqRiskyPort(request, m_nUniqueId);
+	} else if (cmd_type == "white_list") {
+		ReqWhiteList(request, m_nUniqueId);
+	} else if (cmd_type == "normal_port") {
+		ReqNormalPort(request, m_nUniqueId);
+	}
+
+	else if (cmd_type == "create" || cmd_type == "create2" || cmd_type == "create_sync2" || cmd_type == "create_sync") {
 
         ReqCreate(request, m_nUniqueId);
 	} else if (cmd_type == "op") {
@@ -963,6 +971,95 @@ void CHttpServerApp::SendErrHttpRspByUniqueId(int code, const string &reason, un
     SendErrHttpRsp(code, reason, flow);
 
     m_mapUniqueId.erase(it);
+}
+
+void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
+{
+	ReqJobCreateList reqPacket;
+	ReqJobCreate *packet = reqPacket.Append();
+
+	packet->flag = 0;
+
+	try {
+		if (req["json_job"].isNull())
+		{
+            LogWarning("CHttpServerApp::ReqRiskyPort(Json::json_job is null, flow id: %u)", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'empty value'", nUniqueId);
+			return;
+		}
+
+		Json::Value &request = req["json_job"];
+
+		if (!request.isObject())
+		{
+            LogWarning("CHttpServerApp::ReqRiskyPort(Json::json_job is not an object, flow id: %u)", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'invalid value'", nUniqueId);
+			return;
+		}
+	} catch(exception &e) {
+        LogWarning("CHttpServerApp::ReqRiskyPort(catch an exception, flow id: %u)", nUniqueId);
+        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
+		return;
+	}
+}
+
+void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
+{
+	ReqJobCreateList reqPacket;
+	ReqJobCreate *packet = reqPacket.Append();
+
+	packet->flag = 0;
+
+	try {
+		if (req["json_job"].isNull())
+		{
+            LogWarning("CHttpServerApp::ReqWhiteList(Json::json_job is null, flow id: %u)", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'empty value'", nUniqueId);
+			return;
+		}
+
+		Json::Value &request = req["json_job"];
+
+		if (!request.isObject())
+		{
+            LogWarning("CHttpServerApp::ReqWhiteList(Json::json_job is not an object, flow id: %u)", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'invalid value'", nUniqueId);
+			return;
+		}
+	} catch(exception &e) {
+        LogWarning("CHttpServerApp::ReqWhiteList(catch an exception, flow id: %u)", nUniqueId);
+        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
+		return;
+	}
+
+void CHttpServerApp::ReqNormalPort(Json::Value &req, unsigned int nUniqueId)
+{
+	ReqJobCreateList reqPacket;
+	ReqJobCreate *packet = reqPacket.Append();
+
+	packet->flag = 0;
+
+	try {
+		if (req["json_job"].isNull())
+		{
+            LogWarning("CHttpServerApp::ReqNormalPort(Json::json_job is null, flow id: %u)", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'empty value'", nUniqueId);
+			return;
+		}
+
+		Json::Value &request = req["json_job"];
+
+		if (!request.isObject())
+		{
+            LogWarning("CHttpServerApp::ReqNormalPort(Json::json_job is not an object, flow id: %u)", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'invalid value'", nUniqueId);
+			return;
+		}
+	} catch(exception &e) {
+        LogWarning("CHttpServerApp::ReqNormalPort(catch an exception, flow id: %u)", nUniqueId);
+        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
+		return;
+	}
 }
 
 void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
