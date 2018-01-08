@@ -14,11 +14,11 @@ typedef struct __CLIENT_INFO {
 	string passwd;
 } UserInfo;
 
-class CAccessServerApp;
+class CHttpServerApp;
 
 class CClientAuth: public CThread {
 public:
-	CClientAuth(CAccessServerApp *ptr);
+	CClientAuth(CHttpServerApp *ptr);
 	virtual ~CClientAuth();
 public:
 	void SetDbInfo(const string &strDbName = "ajs", const string& strHost = "127.0.0.1", const string &strUser = "root", const string &strPassword = "", unsigned short nPort = 3306);
@@ -33,7 +33,7 @@ private:
 	virtual void Run();
 
 private:
-	CAccessServerApp* m_accessServerApp;
+	CHttpServerApp* m_httpServerApp;
 	map<int, UserInfo> m_AuthInfos;
 	mysqlpp::Connection m_mysqlConn;
 	string m_strHost;

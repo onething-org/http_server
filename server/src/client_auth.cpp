@@ -1,14 +1,14 @@
-#include "access_server.h"
+#include "http_server.h"
 #include <utility>
 
-CClientAuth::CClientAuth(CAccessServerApp *ptr)
-	:m_accessServerApp(ptr),m_mysqlConn(false),m_nPort(0),m_nTimeInterval(0),m_nTimeLastUpdate(0),m_bContinue(true)
+CClientAuth::CClientAuth(CHttpServerApp *ptr)
+	:m_httpServerApp(ptr),m_mysqlConn(false),m_nPort(0),m_nTimeInterval(0),m_nTimeLastUpdate(0),m_bContinue(true)
 {}
 
 CClientAuth::~CClientAuth()
 {
 	m_bContinue = false;
-	m_accessServerApp = NULL;
+	m_httpServerApp = NULL;
 }
 
 void CClientAuth::SetDbInfo(const string &strDbName , const string &strHost, const string &strUser, const string &strPassword, unsigned short nPort)
@@ -97,7 +97,7 @@ void CClientAuth::Run()
 			}
 
 			DisConnect();
-			m_accessServerApp->UpdateModuleAuth(m_AuthInfos);
+			m_httpServerApp->UpdateModuleAuth(m_AuthInfos);
 
 			m_nTimeLastUpdate = nTimeNow;
 			flag = false;

@@ -3117,7 +3117,7 @@ void CHttpServerApp::ReqQueryAJSAgent(Json::Value &request, unsigned int nUnique
                             + "param:'ip_list',error:'too many ips'", nUniqueId);
 			return;
 		}
-		for (size_t i = 0; i != request["ip_list"].size(); ++i) {
+		for (unsigned i = 0; i != request["ip_list"].size(); ++i) {
 			Json::Value &ele = request["ip_list"][i];
 			if (ele.isString()) {
 				AsnInt *agent = reqPacket.Append();
@@ -3194,7 +3194,7 @@ void CHttpServerApp::ReqQueryTSCAgent(Json::Value &request, unsigned int nUnique
                             + "param:'ip_list',error:'too many ips'", nUniqueId);
 			return;
 		}
-		for (size_t i = 0; i != request["ip_list"].size(); ++i) {
+		for (unsigned i = 0; i != request["ip_list"].size(); ++i) {
 			Json::Value &ele = request["ip_list"][i];
 			if (ele.isString()) {
 				AsnInt *agent = reqPacket.Append();

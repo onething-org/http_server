@@ -1,4 +1,4 @@
-MCPPP=/data1/var/http-dav/polopei/mcp++/
+MCPPP=/usr/local/monitor_dev/public_64/tfc/
 
 LIBHTTP=$(MCPPP)libhttp/
 CCD=$(MCPPP)ccd/
