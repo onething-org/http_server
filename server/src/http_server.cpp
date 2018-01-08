@@ -1031,6 +1031,7 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
 	}
+}
 
 void CHttpServerApp::ReqNormalPort(Json::Value &req, unsigned int nUniqueId)
 {
