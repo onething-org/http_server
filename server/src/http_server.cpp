@@ -1088,7 +1088,7 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 			return;
 		}
 
-		//检查client_module
+		// 检查client_module
 		if (request.isMember("client_module") && request["client_module"].isInt())
 		{
 			packet->clientModule = request["client_module"].asInt();
@@ -1108,7 +1108,7 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 		else
 		{
             LogWarning("CHttpServerApp::ReqCreate(Json:: client_passwd is invalid, flow id: %u)", nUniqueId);
-            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'client_passwd',error:'invalid value'", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'client_passwd',error:'invalid value'", nUniqueId);
 			return;
 		}
 
@@ -1116,11 +1116,11 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 		if (!ClientModuleAuth((int)(packet->clientModule), passwd))
 		{
             LogWarning("CHttpServerApp::ReqCreate(client_passwd is not correct, flow id: %u)", nUniqueId);
-            SendErrHttpRspByUniqueId(ACCESS_DENIED,ACCESS_DENIED_REASON +  "param:'client_passwd',error:'incorrect password'", nUniqueId);
+            SendErrHttpRspByUniqueId(ACCESS_DENIED, ACCESS_DENIED_REASON + "param:'client_passwd',error:'incorrect password'", nUniqueId);
 			return;
 		}
 
-		//检查run_mode
+		// 检查run_mode
 		if (request["run_mode"].isString())
 		{ 
 			string run_mode = Trim(request["run_mode"].asString());
@@ -1139,11 +1139,11 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 		else if (!request["run_mode"].isNull())
 		{
             LogWarning("CHttpServerApp::ReqCreate(run_mode is not a string, flow id: %u)", nUniqueId);
-            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'run_mode',error:'invalid value'", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'run_mode',error:'invalid value'", nUniqueId);
 			return;
 		}
 
-			//检查delete_mode
+		// 检查delete_mode
 		if (request["delete_mode"].isString())
 		{ 
 			string delete_mode = Trim(request["delete_mode"].asString());
@@ -1166,7 +1166,7 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 			return;
 		}
 
-			//检查now_run
+		// 检查now_run
 		if (request["now_run"].isString())
 		{ 
 			string now_run = Trim(request["now_run"].asString());
@@ -1185,7 +1185,7 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 		else if (!request["now_run"].isNull())
 		{
             LogWarning("CHttpServerApp::ReqCreate(now_run is not a string, flow id: %u)", nUniqueId);
-            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'now_run',error:'invalid value'", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'now_run',error:'invalid value'", nUniqueId);
 			return;
 		}
 		else
@@ -1199,9 +1199,9 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 			packet->flag = (int)(packet->flag) | AJS_FLAG_CREATE_SYNC;
 		}
 
-		if (request["signal"].isInt()){
+		if (request["signal"].isInt())
 			packet->userSignal = request["signal"].asInt();
-		} else
+		else
 			packet->userSignal = g_nDefaultSignal;	
 
 		if (request["author"].isString())
@@ -1230,36 +1230,36 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 			packet->userData = "";
 
 		//检查step_list
-		if (request["step_list"].isNull()){ 
+		if (request["step_list"].isNull()) { 
             LogWarning("CHttpServerApp::ReqCreate(step_list is null, flow id: %u)", nUniqueId);
-            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'empty value'", nUniqueId);
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list',error:'empty value'", nUniqueId);
 			return;
-		} else if ( request["step_list"].isArray() ) {
+		} else if (request["step_list"].isArray()) {
 			Json::Value &step_list = request["step_list"];
 
-			if ( step_list.size() == 0){
-                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'empty value'", nUniqueId);
-				return ;
+			if (step_list.size() == 0) {
+                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list',error:'empty value'", nUniqueId);
+				return;
 			} else {
-				for (Json::Value::ArrayIndex i = 0; i != step_list.size(); ++i){
+				for (Json::Value::ArrayIndex i = 0; i != step_list.size(); ++i) {
 					Json::Value &step = step_list[i];
-					JobStepSingle* sigle = packet->stepList.Append();
+					JobStepSingle *sigle = packet->stepList.Append();
 
-					//检查type
-					if (!step.isObject()){
+					// 检查type
+					if (!step.isObject()) {
                         LogWarning("CHttpServerApp::ReqCreate(step %u is not object, flow id: %u)", (unsigned int)i, nUniqueId);
-                        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'invalid value'", nUniqueId);
+                        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list',error:'invalid value'", nUniqueId);
 						return;
-					} else if ( step["type"].isNull()) {
+					} else if (step["type"].isNull()) {
                         LogWarning("CHttpServerApp::ReqCreate('type' of step %u is null, flow id: %u)", (unsigned int)i, nUniqueId);
-                        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list type',error:'empty value'", nUniqueId);
-						return ;
+                        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list type',error:'empty value'", nUniqueId);
+						return;
 					} else if (step["type"].isInt()) {
 						int type = step["type"].asInt();
-						if ( 0 == type ) {
-							//执行命令
+						if (0 == type) {
+							// 执行命令
 							unsigned int nCmdIp = 0;
-							if (step["ip"].isString()){
+							if (step["ip"].isString()) {
 								string strTemp = step["ip"].asString();
 								if (IpStringToInt(nCmdIp, strTemp) != 0) {
 									nCmdIp = StringToInt(strTemp);
@@ -1269,14 +1269,14 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 								}
 								if (nCmdIp == 0) {
                                     LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list ip',error:'invalid value'", nUniqueId);
+                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list ip',error:'invalid value'", nUniqueId);
 									return;
 								}
 
-							}else {
+							} else {
                                 LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list ip',error:'value is not string'", nUniqueId);
-								return ;
+                                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list ip',error:'value is not string'", nUniqueId);
+								return;
 							}
 
 							sigle->choiceId = JobStepSingle::jobStepShellCmdCid; 
@@ -1286,209 +1286,210 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
 
 							cmd->agentId = nCmdIp;
 
-							if(step["time_out"].isInt())
+							if (step["time_out"].isInt())
 								cmd->timeout = step["time_out"].asInt();
 							else
 								cmd->timeout = g_nDefaultTimeout;
 
-							if(step["user"].isString())
+							if (step["user"].isString())
 								cmd->execUser = step["user"].asString().c_str();
 							else 
 								cmd->execUser = g_strDefaultUser.c_str();
 
-							if(step["not_log"].isInt()){
+							if (step["not_log"].isInt()) {
 								int not_log = step["not_log"].asInt();
 								int ret = CheckNotLog(not_log);
-								if ( ret != -1 )
+								if (ret != -1) {
 									cmd->flag = (int)(cmd->flag) | ret;
-								else {
+								} else {
                                     LogWarning("CHttpServerApp::ReqCreate('not_log' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list not_log',error:'value is not int'", nUniqueId);
-									return ;
+                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list not_log',error:'value is not int'", nUniqueId);
+									return;
 								}
-							} 
+							}
 
-							if(step["not_getout"].isInt()){
+							if (step["not_getout"].isInt()) {
 								int not_getout = step["not_getout"].asInt();
 								int ret = CheckNotGetOut(not_getout);
-								if ( ret != -1 )
+								if (ret != -1) {
 									cmd->flag = (int)(cmd->flag) | ret;
-								else {
+								} else {
                                     LogWarning("CHttpServerApp::ReqCreate('not_getout' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list not_getout',error:'value is not int'", nUniqueId);
-									return ;
+                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list not_getout',error:'value is not int'", nUniqueId);
+									return;
 								}
 							} 
 
-							if(step["not_geterr"].isInt()){
+							if (step["not_geterr"].isInt()) {
 								int not_geterr = step["not_geterr"].asInt();
 								int ret = CheckNotGetOut(not_geterr);
-								if ( ret != -1 )
+								if (ret != -1) {
 									cmd->flag = (int)(cmd->flag) | ret;
-								else {
+								} else {
                                     LogWarning("CHttpServerApp::ReqCreate('not_geterr' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list not_geterr',error:'value is not int'", nUniqueId);
-									return ;
+                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list not_geterr',error:'value is not int'", nUniqueId);
+									return;
 								}
 							} 
 
-							if(step["buf_size"].isInt()){
+							if (step["buf_size"].isInt()) {
 								int nBufSize = step["buf_size"].asInt();
-								if (g_nMaxStdOut < nBufSize ){
+								if (g_nMaxStdOut < nBufSize ) {
                                     LogWarning("CHttpServerApp::ReqCreate('buf_size' of step %u is greater than 6M, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list buf_size',error:'value is too large(>6M)'", nUniqueId);
+                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list buf_size',error:'value is too large(>6M)'", nUniqueId);
 									return;
 								}
 								cmd->bufSize = nBufSize;
-							}
-							else
+							} else {
 								cmd->bufSize = g_nDefaultBufSize;
+							}
 
-							if(step["cmd"].isString())
+							if (step["cmd"].isString())
 								cmd->cmd = step["cmd"].asString().c_str();
 							else 
 								cmd->cmd = "";
 
-							if(step["err_deal"].isInt())
+							if (step["err_deal"].isInt())
 								cmd->errDeal = step["err_deal"].asInt();
 							else
 								cmd->errDeal = g_nDefaultErrDeal;
 
-							if(step["info"].isString())
+							if (step["info"].isString())
 								cmd->info = step["info"].asString().c_str();
 							else
 								cmd->info = "";
 
-							if(step["desc"].isString())
+							if (step["desc"].isString())
 								cmd->desc = step["desc"].asString().c_str();
 							else
 								cmd->desc = "";
 
 
-						} else if ( 1 == type ) {
-							//传文件
-
+						} else if (1 == type) {
+							// 传文件
 							sigle->choiceId = JobStepSingle::jobStepFileSvrCid; 
 							sigle->jobStepFileSvr = new JobStepFileSvr;
 							JobStepFileSvr *file = sigle->jobStepFileSvr;
 							file->flag = 0;
 
-							if(step["src_ip"].isString()){
+							if (step["src_ip"].isString()) {
 								string src_ip = Trim(step["src_ip"].asString());
 								unsigned int ip;
 								int nCmdIp = -1;
-								if ( IpStringToInt(ip ,src_ip) != 0 ){
+								if (IpStringToInt(ip ,src_ip) != 0) {
 									nCmdIp = StringToInt(src_ip);
 									string strTemp2 = IntToString(nCmdIp);
 									if (src_ip != strTemp2)
 										nCmdIp = 0;
-									else ip = (unsigned)nCmdIp;
+									else
+										ip = (unsigned)nCmdIp;
 								}
 
-								if (nCmdIp == 0){
+								if (nCmdIp == 0) {
                                     LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list src_ip',error:'invalid ip'", nUniqueId);
-									return ;
+                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list src_ip',error:'invalid ip'", nUniqueId);
+									return;
 								} else 
 									file->srcAgentId = ip;
 
 							} else {
                                 LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list src_ip',error:'value is not string'", nUniqueId);
+                                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list src_ip',error:'value is not string'", nUniqueId);
 								return ;
 							}
 
-							if(step["src_path"].isString()){
+							if (step["src_path"].isString()) {
 								file->srcFile = step["src_path"].asString().c_str();
 							} else {
                                 LogWarning("CHttpServerApp::ReqCreate('src_path' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list src_path',error:'empty value'", nUniqueId);
-								return ;
+                                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list src_path',error:'empty value'", nUniqueId);
+								return;
 							}
 
-							if(step["dest_ip"].isString()){
+							if (step["dest_ip"].isString()) {
 								string dest_ip = Trim(step["dest_ip"].asString());
 								unsigned int ip;
 								int nCmdIp = -1;
-								if ( IpStringToInt(ip ,dest_ip) != 0 ){
+								if (IpStringToInt(ip ,dest_ip) != 0) {
 									nCmdIp = StringToInt(dest_ip);
 									string strTemp2 = IntToString(nCmdIp);
 									if (dest_ip != strTemp2)
 										nCmdIp = 0;
-									else ip = (unsigned)nCmdIp;
+									else
+										ip = (unsigned)nCmdIp;
 								}
 
-								if (nCmdIp == 0){
+								if (nCmdIp == 0) {
                                     LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list dest_ip',error:'invalid ip'", nUniqueId);
-									return ;
+                                    SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list dest_ip',error:'invalid ip'", nUniqueId);
+									return;
+								} else {
+									file->dstAgentId = ip;
 								}
-								else file->dstAgentId = ip;
 							} else {
                                 LogWarning("CHttpServerApp::ReqCreate('ip' of step %u is not string, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list dest_ip',error:'value is not string'", nUniqueId);
-								return ;
+                                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list dest_ip',error:'value is not string'", nUniqueId);
+								return;
 							}
 
-							if(step["dest_path"].isString() ){
+							if (step["dest_path"].isString()) {
 								file->dstPath = step["dest_path"].asString().c_str();
 							} else {
                                 LogWarning("CHttpServerApp::ReqCreate('dest_path' of step %u is invalid, flow id: %u, type: %d)", (unsigned int)i, nUniqueId, type);
-                                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list dest_path',error:'empty value'", nUniqueId);
-								return ;
+                                SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list dest_path',error:'empty value'", nUniqueId);
+								return;
 							}
 
-
-							if(step["desc"].isString())
+							if (step["desc"].isString())
 								file->desc = step["desc"].asString().c_str();
 							else 
 								file->desc = "";
 
-							if(step["info"].isString())
+							if (step["info"].isString())
 								file->info = step["info"].asString().c_str();
 							else
 								file->info = "";
 
-							if(step["err_deal"].isInt())
+							if (step["err_deal"].isInt())
 								file->errDeal = step["err_deal"].asInt();
 							else
 								file->errDeal = g_nDefaultErrDeal;
 
-							if(step["time_out"].isInt())
+							if (step["time_out"].isInt())
 								file->timeout = step["time_out"].asInt();
 							else
 								file->timeout = g_nDefaultTimeout;
                             
-                            if(step["out_max_con_retry"].isInt()){
+                            if (step["out_max_con_retry"].isInt()) {
 								int ret = CheckFileOutMaxConRetry(step["out_max_con_retry"].asInt());
-								if ( ret != -1 )
+								if (ret != -1)
 									file->flag = (int)(file->flag) | ret;
 							}
                             
 						} else {
-                            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list type',error:'invalid value'", nUniqueId);
-							return ;
+                            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list type',error:'invalid value'", nUniqueId);
+							return;
 						}
 
 					} else {
                         LogWarning("CHttpServerApp::ReqCreate('type' of step %u is not int, flow id: %u)", (unsigned int)i, nUniqueId);
-                        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list type',error:'invalid value'", nUniqueId);
-						return ;
+                        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list type',error:'invalid value'", nUniqueId);
+						return;
 					}
 				}
 			}
 		} else {
             LogWarning("CHttpServerApp::ReqCreate(step_list is not a array, flow id: %u)", nUniqueId);
-            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'value is not array'", nUniqueId);
-			return ;
+            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'step_list',error:'value is not array'", nUniqueId);
+			return;
 		}
-	}catch(exception &e){
+	} catch (exception &e) {
         LogWarning("CHttpServerApp::ReqCreate(catch a exception, flow id: %u)", nUniqueId);
-        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  e.what(), nUniqueId);
+        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
 	}
 
-	//发送到dcc
+	// 发送到dcc
 	pair<unsigned int, unsigned short> server_info;
 	if (GetJobServerByClientModule((int)packet->clientModule, server_info))
 	{
@@ -1509,9 +1510,11 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
             	info.type = SyncReqInfo::CREATE_SYNC2;
 
             m_mapSyncReqInfo[nUniqueId] = info;
-            //同步任务需要加入超时队列
+            // 同步任务需要加入超时队列
             AddToTimeoutQueue(nUniqueId, g_jobServerTimeOut);
-        } else {
+        }
+        else
+        {
             AsyncReqInfo info;
             info.ccd_flow = m_nFlow;
             info.append = m_nNowAppend;
@@ -1533,7 +1536,7 @@ void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
             SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
             if (g_strProxyType == "create_sync" || g_strProxyType == "create_sync2")
             {
-            	//如果同步任务发送失败，需要清楚信息
+            	// 如果同步任务发送失败，需要清楚信息
                 m_mapSyncReqInfo.erase(nUniqueId);
                 DeleteFromTimeoutQueue(nUniqueId);
             }
@@ -2426,7 +2429,7 @@ void CHttpServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                     JobStepSingle* sigle = packet->stepList.Append();
 
                     //检查type
-                    if (!step.isObject()){
+                    if (!step.isObject()) {
                         LogWarning("CHttpServerApp::ReqCreateBatch(step %u is not object, flow id: %u)", (unsigned int)i, nUniqueId);
                         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON +  "param:'step_list',error:'invalid value'", nUniqueId);
                         return;
@@ -2436,7 +2439,7 @@ void CHttpServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                         return ;
                     } else if (step["type"].isInt()) {
                         int type = step["type"].asInt();
-                        if ( 0 == type ) {
+                        if (0 == type) {
                             //执行命令
                             unsigned int nCmdIp = 0;
                             if (step["ip"].isString()){
@@ -2545,7 +2548,7 @@ void CHttpServerApp::ReqCreateBatch(Json::Value &req, unsigned int nUniqueId)
                                 cmd->desc = "";
 
 
-                        } else if ( 1 == type ) {
+                        } else if (1 == type) {
                             //传文件
 
                             sigle->choiceId = JobStepSingle::jobStepFileSvrCid; 
