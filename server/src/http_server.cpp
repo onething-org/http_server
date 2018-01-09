@@ -28,7 +28,7 @@ static const string ACCESS_DENIED_REASON = CAjsErrorNoToStr::ErrorNoToStr(ACCESS
 
 static char r_reason_200[] = "OK";
 
-const string access_server_version = "http_server_version = 1.0.0";
+const string http_server_version = "http_server_version = 1.0.0";
 
 void LogJsonObj(int level, const Json::Value & obj)
 { 
@@ -95,7 +95,6 @@ CHttpServerApp::CHttpServerApp()
     ,m_adjustBufferLastTime(0), m_adjustBufferTimeInterval(0), m_adjustUniqueLastTime(0), m_adjustUniqueTimeInterval(0), m_nCcdRequests(0), m_nDccReceives(0)
 	,m_nInvalidCcdRequest(0), m_nInvalidDccReceives(0), m_nTimeOutedDccReceives(0)
 	,m_bPrintJobServerInfo(false)
-
 {
 	m_clientAuth = new CClientAuth(this);
 	LoadCfg();
