@@ -22,6 +22,19 @@ using namespace tfc::net;
 
 class CHttpReqPkt;
 
+typedef struct __CONFIRM_INFO {
+    int id;
+    int stat;
+} confirmInfo;
+
+typedef struct __RESULT_INFO {
+    int id;
+    string ip;
+    int port;
+    string type;
+    string host;
+} resultInfo;
+
 typedef struct __SYNC_REQ_INFO {
 	enum {                                   //同步任务状态
 		CREATE_SYNC_WAIT_REQ_CREATE = 0,

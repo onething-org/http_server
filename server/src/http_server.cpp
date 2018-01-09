@@ -975,10 +975,12 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 	// to be deleted
 	LogInfo("CHttpServerApp::ReqRiskyPort()");
 
-	ReqJobCreateList reqPacket;
-	ReqJobCreate *packet = reqPacket.Append();
+	// ReqJobCreateList reqPacket;
+	// ReqJobCreate *packet = reqPacket.Append();
 
-	packet->flag = 0;
+	// packet->flag = 0;
+
+	resultInfo result_info;
 
 	try {
 
@@ -1000,7 +1002,8 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("id") && request["id"].isInt())
 		{
-			packet->clientModule = request["id"].asInt();
+			// packet->clientModule = request["id"].asInt();
+			result_info.id = request["id"].asInt();
 		}
 		else
 		{
@@ -1011,7 +1014,8 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("ip") && request["ip"].isString())
 		{
-			packet->clientModule = request["ip"].asString();		// 需转换为整型？
+			// packet->clientModule = request["ip"].asString();		// 需转换为整型？
+			result_info.ip = request["ip"].asString();
 		}
 		else
 		{
@@ -1022,7 +1026,8 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("port") && request["port"].isInt())
 		{
-			packet->clientModule = request["port"].asInt();
+			// packet->clientModule = request["port"].asInt();
+			result_info.port = request["port"].asInt();
 		}
 		else
 		{
@@ -1033,7 +1038,8 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("type") && request["type"].isString())
 		{
-			packet->clientModule = request["type"].asString();
+			// packet->clientModule = request["type"].asString();
+			result_info.type = request["type"].asString();
 		}
 		else
 		{
@@ -1044,7 +1050,8 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("host") && request["host"].isString())
 		{
-			packet->clientModule = request["host"].asString();
+			// packet->clientModule = request["host"].asString();
+			result_info.host = request["host"].asString();
 		}
 		else
 		{
@@ -1053,19 +1060,26 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 			return;
 		}
 
-	} catch(exception &e) {
+	} catch (exception &e) {
 		LogWarning("CHttpServerApp::ReqRiskyPort(catch an exception, flow id: %u)", nUniqueId);
 		SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
 	}
+
+	LogInfo("CHttpServerApp::ReqRiskyPort(). result_info: id: %d, ip: %s, port: %d, type %s, host: %s", result_info.id, result_info.ip, result_info.port, result_info.type, result_info.host);
 }
 
 void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 {
-	ReqJobCreateList reqPacket;
-	ReqJobCreate *packet = reqPacket.Append();
+	// to be deleted
+	LogInfo("CHttpServerApp::ReqWhiteList()");
 
-	packet->flag = 0;
+	// ReqJobCreateList reqPacket;
+	// ReqJobCreate *packet = reqPacket.Append();
+
+	// packet->flag = 0;
+
+	confirmInfo confirm_info;
 
 	try {
 
@@ -1087,31 +1101,35 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("id") && request["id"].isInt())
 		{
-			packet->clientModule = request["id"].asInt();
+			// packet->clientModule = request["id"].asInt();
+			confirm_info.id = request["id"].asInt();
 		}
 		else
 		{
-			LogWarning("CHttpServerApp::ReqRiskyPort(Json:: id is invalid, flow id: %u)", nUniqueId);
+			LogWarning("CHttpServerApp::ReqWhiteList(Json:: id is invalid, flow id: %u)", nUniqueId);
 			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'id', error: 'invalid value'", nUniqueId);
 			return;
 		}
 
 		if (request.isMember("stat") && request["stat"].isInt())
 		{
-			packet->clientModule = request["stat"].asInt();
+			// packet->clientModule = request["stat"].asInt();
+			confirm_info.stat = request["stat"].asInt();
 		}
 		else
 		{
-			LogWarning("CHttpServerApp::ReqRiskyPort(Json:: stat is invalid, flow id: %u)", nUniqueId);
+			LogWarning("CHttpServerApp::ReqWhiteList(Json:: stat is invalid, flow id: %u)", nUniqueId);
 			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'stat', error: 'invalid value'", nUniqueId);
 			return;
 		}
 
-	} catch(exception &e) {
+	} catch (exception &e) {
 		LogWarning("CHttpServerApp::ReqWhiteList(catch an exception, flow id: %u)", nUniqueId);
 		SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
 	}
+
+	LogInfo("CHttpServerApp::ReqWhiteList(). confirm_info: id: %d, stat: %d", confirm_info.id, confirm_info.stat);
 }
 
 void CHttpServerApp::ReqNormalPort(Json::Value &req, unsigned int nUniqueId)
@@ -1137,7 +1155,7 @@ void CHttpServerApp::ReqNormalPort(Json::Value &req, unsigned int nUniqueId)
             SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'invalid value'", nUniqueId);
 			return;
 		}
-	} catch(exception &e) {
+	} catch (exception &e) {
         LogWarning("CHttpServerApp::ReqNormalPort(catch an exception, flow id: %u)", nUniqueId);
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
