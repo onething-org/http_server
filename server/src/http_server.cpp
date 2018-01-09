@@ -979,10 +979,11 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 	packet->flag = 0;
 
 	try {
+
 		if (req["json_job"].isNull())
 		{
-            LogWarning("CHttpServerApp::ReqRiskyPort(Json::json_job is null, flow id: %u)", nUniqueId);
-            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'empty value'", nUniqueId);
+			LogWarning("CHttpServerApp::ReqRiskyPort(Json::json_job is null, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'empty value'", nUniqueId);
 			return;
 		}
 
@@ -990,13 +991,69 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (!request.isObject())
 		{
-            LogWarning("CHttpServerApp::ReqRiskyPort(Json::json_job is not an object, flow id: %u)", nUniqueId);
-            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'invalid value'", nUniqueId);
+			LogWarning("CHttpServerApp::ReqRiskyPort(Json::json_job is not an object, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'invalid value'", nUniqueId);
 			return;
 		}
+
+		if (request.isMember("id") && request["id"].isInt())
+		{
+			packet->clientModule = request["id"].asInt();
+		}
+		else
+		{
+			LogWarning("CHttpServerApp::ReqRiskyPort(Json:: id is invalid, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'id', error: 'invalid value'", nUniqueId);
+			return;
+		}
+
+		if (request.isMember("ip") && request["ip"].isString())
+		{
+			packet->clientModule = request["ip"].asString();		// 需转换为整型？
+		}
+		else
+		{
+			LogWarning("CHttpServerApp::ReqRiskyPort(Json:: ip is invalid, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'ip', error: 'invalid value'", nUniqueId);
+			return;
+		}
+
+		if (request.isMember("port") && request["port"].isInt())
+		{
+			packet->clientModule = request["port"].asInt();
+		}
+		else
+		{
+			LogWarning("CHttpServerApp::ReqRiskyPort(Json:: port is invalid, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'port', error: 'invalid value'", nUniqueId);
+			return;
+		}
+
+		if (request.isMember("type") && request["type"].isString())
+		{
+			packet->clientModule = request["type"].asString();
+		}
+		else
+		{
+			LogWarning("CHttpServerApp::ReqRiskyPort(Json:: type is invalid, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'type', error: 'invalid value'", nUniqueId);
+			return;
+		}
+
+		if (request.isMember("host") && request["host"].isString())
+		{
+			packet->clientModule = request["host"].asString();
+		}
+		else
+		{
+			LogWarning("CHttpServerApp::ReqRiskyPort(Json:: host is invalid, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'host', error: 'invalid value'", nUniqueId);
+			return;
+		}
+
 	} catch(exception &e) {
-        LogWarning("CHttpServerApp::ReqRiskyPort(catch an exception, flow id: %u)", nUniqueId);
-        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
+		LogWarning("CHttpServerApp::ReqRiskyPort(catch an exception, flow id: %u)", nUniqueId);
+		SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
 	}
 }
@@ -1009,10 +1066,11 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 	packet->flag = 0;
 
 	try {
+
 		if (req["json_job"].isNull())
 		{
-            LogWarning("CHttpServerApp::ReqWhiteList(Json::json_job is null, flow id: %u)", nUniqueId);
-            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'empty value'", nUniqueId);
+			LogWarning("CHttpServerApp::ReqWhiteList(Json::json_job is null, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'empty value'", nUniqueId);
 			return;
 		}
 
@@ -1020,13 +1078,36 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 
 		if (!request.isObject())
 		{
-            LogWarning("CHttpServerApp::ReqWhiteList(Json::json_job is not an object, flow id: %u)", nUniqueId);
-            SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'invalid value'", nUniqueId);
+			LogWarning("CHttpServerApp::ReqWhiteList(Json::json_job is not an object, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'json_job', error: 'invalid value'", nUniqueId);
 			return;
 		}
+
+		if (request.isMember("id") && request["id"].isInt())
+		{
+			packet->clientModule = request["id"].asInt();
+		}
+		else
+		{
+			LogWarning("CHttpServerApp::ReqRiskyPort(Json:: id is invalid, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'id', error: 'invalid value'", nUniqueId);
+			return;
+		}
+
+		if (request.isMember("stat") && request["stat"].isInt())
+		{
+			packet->clientModule = request["stat"].asInt();
+		}
+		else
+		{
+			LogWarning("CHttpServerApp::ReqRiskyPort(Json:: stat is invalid, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'stat', error: 'invalid value'", nUniqueId);
+			return;
+		}
+
 	} catch(exception &e) {
-        LogWarning("CHttpServerApp::ReqWhiteList(catch an exception, flow id: %u)", nUniqueId);
-        SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
+		LogWarning("CHttpServerApp::ReqWhiteList(catch an exception, flow id: %u)", nUniqueId);
+		SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
 	}
 }
