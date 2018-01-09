@@ -838,19 +838,19 @@ void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
 {
 	LogJsonObj(LOG_LEVEL_LOWEST, request);
 
-	if (!request.isMember("cmd_type")){
+	if (!request.isMember("cmd_type"))
+	{
 		LogWarning("CHttpServerApp::HandleJsonRequest(Json:: cmd_type is null, flow id: %u)", nFlow);
-		SendErrHttpRsp(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'cmd_type',error:'empty value'", nFlow);
+		SendErrHttpRsp(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'cmd_type', error: 'empty value'", nFlow);
 		return;
 	}
 
 	string cmd_type = Trim(request["cmd_type"].asString());
 	int ret = CheckCmdType(cmd_type);
-
 	if (ret == -1)
 	{
 		LogWarning("CHttpServerApp::HandleJsonRequest(Json:: cmd_type is invalid, flow id: %u)", nFlow);
-		SendErrHttpRsp(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param:'cmd_type',error:'invalid value'", nFlow);
+		SendErrHttpRsp(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'cmd_type', error: 'invalid value'", nFlow);
 		return;
 	}
 
@@ -869,8 +869,7 @@ void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
     m_nUniqueId = GetEmptyUniqueID(m_nFlow, m_nNowAppend);
     LogError("CHttpServerApp::HandleJsonRequest(flow %u, append %u, unique %u)", m_nFlow, m_nNowAppend, m_nUniqueId);
 
-	LogDebug("CHttpServerApp::HandleJsonRequest(flow id: %u, cmd_type: %s, append: %u)",
-			nFlow, cmd_type.c_str(), m_nNowAppend);
+	LogDebug("CHttpServerApp::HandleJsonRequest(flow id: %u, cmd_type: %s, append: %u)", nFlow, cmd_type.c_str(), m_nNowAppend);
 
 	if (cmd_type == "risky_port") {
 		ReqRiskyPort(request, m_nUniqueId);
@@ -973,6 +972,9 @@ void CHttpServerApp::SendErrHttpRspByUniqueId(int code, const string &reason, un
 
 void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 {
+	// to be deleted
+	LogInfo("CHttpServerApp::ReqRiskyPort())";
+
 	ReqJobCreateList reqPacket;
 	ReqJobCreate *packet = reqPacket.Append();
 
