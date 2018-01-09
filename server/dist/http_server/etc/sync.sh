@@ -2,7 +2,7 @@
 
 cd `dirname $0`
 pid=$$
-access_server="10.198.131.41"
+http_server="10.198.131.41"
 mysql -h172.25.10.24 ajs -Nse "select ip from tb_module_infos where module_name = 'AS'" > as_list_$pid
 
 while read line
