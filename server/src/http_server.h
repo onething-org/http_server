@@ -88,7 +88,6 @@ typedef struct __ASYNC_REQ_INFO {
 
 } AsyncReqInfo;
 
-
 class CScheduler{
 public:
 	virtual ~CScheduler(){}
@@ -97,7 +96,6 @@ public:
 	virtual bool GetAllJobServer(vector<unsigned short> &serverVct ) = 0;
 	virtual bool UpdateLoad(unsigned short job_server_id, int load) = 0;
 };
-
 
 class CRotationScheduler: public CScheduler{
 public:
@@ -112,7 +110,6 @@ private:
 	set<unsigned short>                      m_jobServer_set;
 	set<unsigned short>::iterator            m_current_it;
 };
-
 
 class CHttpServerApp : public CMCDFrame {
 public:
@@ -175,7 +172,6 @@ private:
     void ReqQueryTime(Json::Value &request, unsigned int nUniqueId);
     void ReqQueryAJSAgent(Json::Value &request, unsigned int nUniqueId);
     void ReqQueryTSCAgent(Json::Value &request, unsigned int nUniqueId);
-
 
 	void RspCreate(const RspJobCreateList* packet,
 		   	unsigned int nIp,
@@ -282,7 +278,6 @@ private:
 
     void SendQueryAll(unsigned int nFlow);
 
-
 	void LoadCfg();
 	void HandleJsonRequest(Json::Value &request, unsigned int nFlow);
 	void ReqJobServerLoad(){}
@@ -306,7 +301,6 @@ private:
 public:
 	void UpdateModuleAuth(const map<int, UserInfo> &infos);
 	unsigned int GetEmptyUniqueID(unsigned int nClientId, unsigned int nSessionId);
-
 
 private:
 	CScheduler                                                *m_pScheduler;                 //调度器
@@ -350,4 +344,3 @@ private:
     unsigned int m_nFlow;
     unsigned int m_nUniqueId;
 };
-

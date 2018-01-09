@@ -766,7 +766,6 @@ void CHttpServerApp::ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, uns
 	default:
 		break;
 	}
-
 }
 
 void CHttpServerApp::ReceiveDataCCD2MCD(CHttpReqPkt &packet, 
@@ -777,7 +776,7 @@ void CHttpServerApp::ReceiveDataCCD2MCD(CHttpReqPkt &packet,
 	m_nCcdRequests++;
     LogLowest("CHttpServerApp::ReceiveDataCCD2MCD(flow %u, ip %u, port %u)", nFlow, nIp, nPort); 
 
-	if (g_bAccessControl && !AccessControl(nIp, nPort) ){
+	if (g_bAccessControl && !AccessControl(nIp, nPort)) {
 		m_nInvalidCcdRequest++;
 		string ip;
 		IpIntToString(ip, nIp);
@@ -786,7 +785,7 @@ void CHttpServerApp::ReceiveDataCCD2MCD(CHttpReqPkt &packet,
 		return;
 	}
 
-	if ((int)g_nHttpPacketMaxLen < packet.GetHeadLength() + packet.GetBodyLength()){
+	if ((int)g_nHttpPacketMaxLen < packet.GetHeadLength() + packet.GetBodyLength()) {
 		//HTTP包长度控制
 		LogWarning("CHttpServerApp::ReceiveDataCCD2MCD(http packet is too long. flow id: %u)", nFlow);
 		SendErrHttpRsp(ACCESS_DENIED, ACCESS_DENIED_REASON + "packet is too long", nFlow);
@@ -796,24 +795,24 @@ void CHttpServerApp::ReceiveDataCCD2MCD(CHttpReqPkt &packet,
 	Json::Value request;
 
 	int method = packet.GetMethod();
-	if(method == HTTP_GET){
-		const char* qs = packet.GetQueryString();
+	if (method == HTTP_GET) {
+		const char *qs = packet.GetQueryString();
 		int qs_len = packet.GetQueryStringLength();
 
-		if(CJsonHelper::toJson(qs, qs_len, request)){
+		if (CJsonHelper::toJson(qs, qs_len, request)) {
 			//LogJsonObj(LOG_LEVEL_OBJ_DEBUG, request);
 			HandleJsonRequest(request, nFlow);
-		}else{
+		} else {
 			LogJsonObj(LOG_LEVEL_LOWEST, request);
 			SendErrHttpRsp(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON, nFlow);
 		}
-	} else if (method == HTTP_POST){
-		const char* body = packet.GetBodyContent();
+	} else if (method == HTTP_POST) {
+		const char *body = packet.GetBodyContent();
 		int body_len = packet.GetBodyLength();
 
-		if(CJsonHelper::toJson(body, body_len, request)){
+		if (CJsonHelper::toJson(body, body_len, request)) {
 			//LogJsonObj(LOG_LEVEL_OBJ_DEBUG, request);
-			HandleJsonRequest(request,nFlow);
+			HandleJsonRequest(request, nFlow);
 		} else {
 			LogJsonObj(LOG_LEVEL_LOWEST, request);
 			SendErrHttpRsp(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON, nFlow);
