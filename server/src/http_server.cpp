@@ -973,7 +973,7 @@ void CHttpServerApp::SendErrHttpRspByUniqueId(int code, const string &reason, un
 void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 {
 	// to be deleted
-	LogInfo("CHttpServerApp::ReqRiskyPort())";
+	LogInfo("CHttpServerApp::ReqRiskyPort()");
 
 	ReqJobCreateList reqPacket;
 	ReqJobCreate *packet = reqPacket.Append();
