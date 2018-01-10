@@ -152,6 +152,7 @@ void CHttpServerApp::LoadCfg()
 	m_clientAuth->SetTimeInterval(StringToInt(cfgFile.GetIni("update_client_auth_time_interval", "300")));
 
 	m_analyzeRiskTimeInterval = StringToInt(cfgFile.GetIni("analyze_risk_time_interval", "60"));
+	LogInfo("CHttpServerApp::LoadCfg(m_analyzeRiskTimeInterval: %d)", m_analyzeRiskTimeInterval);
 
 	g_nLogStrLen = StringToInt(cfgFile.GetIni("log_str_length", "1024"));
 	g_nMaxPerPage = StringToInt(cfgFile.GetIni("max_per_page", "1000"));
@@ -843,9 +844,9 @@ void CHttpServerApp::TimeoutHandler()
 	if (cur_time - m_analyzeRiskLastTime > m_analyzeRiskTimeInterval)
 	{
 		LogInfo("%s|%s|%d cur_time=%d, analyze_risk_last_time=%d, analyze_risk_time_interval=%d\n", __FILE__, __FUNCTION__, __LINE__, cur_time, m_analyzeRiskLastTime, m_analyzeRiskTimeInterval);
-		if (m_analyzeRiskLastTime <= 0)	//进程重启后的第一次计算
+		if (m_analyzeRiskLastTime <= 0)	// 进程重启后的第一次计算
 		{
-			m_analyzeRiskLastTime = cur_time - cur_time % m_analyzeRiskTimeInterval - 1;	// 记录当前时间的上一个周期已经计算
+			m_analyzeRiskLastTime = cur_time - cur_time % m_analyzeRiskTimeInterval - 1;
 		}
 		AnalyzeRisk();
 	}
@@ -853,7 +854,7 @@ void CHttpServerApp::TimeoutHandler()
 
 void CHttpServerApp::AnalyzeRisk()
 {
-
+	// TODO
 }
 
 void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)

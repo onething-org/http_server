@@ -65,24 +65,24 @@ void CMCDFrame::run(const std::string &conf_file) {
         return;
 
     m_nPacketBufSize = JOB_SERVER_ASN_BUF_SIZE;
-    m_pPacketBuf = (char*) malloc(m_nPacketBufSize);
-    if (m_pPacketBuf == NULL){
-		LogError("CMCDFrame::run(m_pPacketBuf == NULL)");
+    m_pPacketBuf = (char*)malloc(m_nPacketBufSize);
+    if (m_pPacketBuf == NULL) {
+        LogError("CMCDFrame::run(m_pPacketBuf == NULL)");
         exit(EXIT_FAILURE);
-	}
+    }
 
-	if (add_mq_2_epoll(m_pMQCCD2MCD, disp_ccd, this)){
-		LogError("CMCDFrame::run(add mq_ccd_2_mcd to epoll error)");
-		exit(EXIT_FAILURE);
-	}
+    if (add_mq_2_epoll(m_pMQCCD2MCD, disp_ccd, this)) {
+        LogError("CMCDFrame::run(add mq_ccd_2_mcd to epoll error)");
+        exit(EXIT_FAILURE);
+    }
 
-	if (add_mq_2_epoll(m_pMQDCC2MCD, disp_dcc, this)){
-		LogError("CMCDFrame::run(add mq_dcc_2_mcd to epoll error)");
-		exit(EXIT_FAILURE);
-	}
+    if (add_mq_2_epoll(m_pMQDCC2MCD, disp_dcc, this)) {
+        LogError("CMCDFrame::run(add mq_dcc_2_mcd to epoll error)");
+        exit(EXIT_FAILURE);
+    }
 
-	//子类的动作
-	ChildAction();
+    // 子类的动作
+    ChildAction();
 
     while  (!stop) {
         if (CheckFlags() > 0) {
@@ -91,7 +91,9 @@ void CMCDFrame::run(const std::string &conf_file) {
 
         CheckTimeOut();
 
-		run_epoll_4_mq();
+        run_epoll_4_mq();
+
+        TimeoutHandler();
     }
 
     free(m_pPacketBuf);
