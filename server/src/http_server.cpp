@@ -838,8 +838,6 @@ void CHttpServerApp::ChildAction()
 
 void CHttpServerApp::TimeoutHandler()
 {
-	AutoStatistic tmp(__FUNCTION__);
-
 	time_t cur_time = time(NULL);
 	if (cur_time - m_analyzeRiskLastTime > m_analyzeRiskTimeInterval)
 	{
