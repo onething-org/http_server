@@ -25,7 +25,7 @@ class CHttpReqPkt;
 typedef struct __CONFIRM_INFO {
     int id;
     int stat;
-} confirmInfo;
+} ConfirmInfo;
 
 typedef struct __RESULT_INFO {
     int id;
@@ -33,7 +33,7 @@ typedef struct __RESULT_INFO {
     int port;
     string type;
     string host;
-} resultInfo;
+} ResultInfo;
 
 typedef struct __SYNC_REQ_INFO {
 	enum {                                   //同步任务状态
@@ -138,6 +138,8 @@ public:
 	virtual void OnSignalUser2();
 
 	virtual void ChildAction();
+
+    virtual void TimeoutHandler();
 
 	virtual void SendErrHttpRsp(int code,
 			   	const string& reason,
@@ -314,6 +316,7 @@ private:
 public:
 	void UpdateModuleAuth(const map<int, UserInfo> &infos);
 	unsigned int GetEmptyUniqueID(unsigned int nClientId, unsigned int nSessionId);
+    void AnalyzeRisk();
 
 private:
 	CScheduler                                                *m_pScheduler;                 //调度器
@@ -356,4 +359,7 @@ private:
 	unsigned int m_nNowAppend;
     unsigned int m_nFlow;
     unsigned int m_nUniqueId;
+
+    int m_analyzeRiskLastTime;
+    int m_analyzeRiskTimeInterval;
 };

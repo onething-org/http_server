@@ -95,6 +95,8 @@ protected:
 	//孩子类动作
 	virtual void ChildAction() {}
 
+    virtual void TimeoutHandler() {}
+
     // 下面的8个函数，子类可以调用，用以完成任务
 	/*
 	template<typename Type> int SendDataMCD2CCD(Type& elem, unsigned int nFlow) {

@@ -17,11 +17,11 @@ log_statistic_time_interval = 180
 no_access_control = 1
 create_sync_query_time_interval = 30
 stat_file = ../log/stat
-valid_ip_info = 10.130.28.228|10.130.14.74
+valid_ip_info = 10.65.13.101|10.65.13.102
 create_sync_query_retry_count = 2
 
 user_info_db = ajs
-user_info_host = 172.25.10.24
+user_info_host = 10.65.13.102
 user_info_user = root
 user_info_password = 
 user_info_port = 3306
@@ -41,6 +41,8 @@ max_query_field_batch_count = 2000
 #max_http_packet_length = 5242880
 max_http_packet_length = 20971520
 
-serial_server_ip = 172.25.10.24
-serial_server_port = 32771
+serial_server_ip = 10.65.13.102
+serial_server_port = 13999
 serial_server_schedule_time_interval = 0
+
+analyze_risk_time_interval = 60

@@ -94,7 +94,7 @@ CHttpServerApp::CHttpServerApp()
 	,m_logStatisticLastTime(0), m_logStatisticTimeInterval(0)
     ,m_adjustBufferLastTime(0), m_adjustBufferTimeInterval(0), m_adjustUniqueLastTime(0), m_adjustUniqueTimeInterval(0), m_nCcdRequests(0), m_nDccReceives(0)
 	,m_nInvalidCcdRequest(0), m_nInvalidDccReceives(0), m_nTimeOutedDccReceives(0)
-	,m_bPrintJobServerInfo(false)
+	,m_bPrintJobServerInfo(false),m_analyzeRiskLastTime(0)
 {
 	m_clientAuth = new CClientAuth(this);
 	LoadCfg();
@@ -151,6 +151,7 @@ void CHttpServerApp::LoadCfg()
 	m_clientAuth->SetDbInfo(strDb, strHost, strUser, strPassword, nPort);
 	m_clientAuth->SetTimeInterval(StringToInt(cfgFile.GetIni("update_client_auth_time_interval", "300")));
 
+	m_analyzeRiskTimeInterval = StringToInt(cfgFile.GetIni("analyze_risk_time_interval", "60"));
 
 	g_nLogStrLen = StringToInt(cfgFile.GetIni("log_str_length", "1024"));
 	g_nMaxPerPage = StringToInt(cfgFile.GetIni("max_per_page", "1000"));
@@ -834,6 +835,27 @@ void CHttpServerApp::ChildAction()
 	//ProfilerStart("CPUProfile");
 }
 
+void CHttpServerApp::TimeoutHandler()
+{
+	AutoStatistic tmp(__FUNCTION__);
+
+	time_t cur_time = time(NULL);
+	if (cur_time - m_analyzeRiskLastTime > m_analyzeRiskTimeInterval)
+	{
+		LogInfo("%s|%s|%d cur_time=%d, analyze_risk_last_time=%d, analyze_risk_time_interval=%d\n", __FILE__, __FUNCTION__, __LINE__, cur_time, m_analyzeRiskLastTime, m_analyzeRiskTimeInterval);
+		if (m_analyzeRiskLastTime <= 0)	//进程重启后的第一次计算
+		{
+			m_analyzeRiskLastTime = cur_time - cur_time % m_analyzeRiskTimeInterval - 1;	// 记录当前时间的上一个周期已经计算
+		}
+		AnalyzeRisk();
+	}
+}
+
+void CHttpServerApp::AnalyzeRisk()
+{
+
+}
+
 void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
 {
 	LogJsonObj(LOG_LEVEL_LOWEST, request);
@@ -980,7 +1002,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 	// packet->flag = 0;
 
-	resultInfo result_info;
+	ResultInfo result_info;
 
 	try {
 
@@ -1079,7 +1101,7 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 
 	// packet->flag = 0;
 
-	confirmInfo confirm_info;
+	ConfirmInfo confirm_info;
 
 	try {
 
