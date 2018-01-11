@@ -182,7 +182,10 @@ int CheckOrderBy(const string& strOrderBy)
 
 int CheckCmdType(const string& strCmdType)
 {
-	if (strCmdType != "create" &&
+	if (strCmdType != "risky_port" &&
+		strCmdType != "white_list" &&
+		strCmdType != "normal_port" &&
+			strCmdType != "create" &&
 			strCmdType != "create2" &&
 			strCmdType != "create_sync" &&
 			strCmdType != "create_sync2" &&

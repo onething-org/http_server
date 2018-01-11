@@ -21,7 +21,7 @@ valid_ip_info = 10.65.13.101|10.65.13.102
 create_sync_query_retry_count = 2
 
 user_info_db = ajs
-user_info_host = 10.65.13.102
+user_info_host = 127.0.0.1
 user_info_user = root
 user_info_password = 
 user_info_port = 3306
