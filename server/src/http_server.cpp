@@ -889,6 +889,7 @@ void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
 
 	LogDebug("CHttpServerApp::HandleJsonRequest(flow id: %u, cmd_type: %s, append: %u)", nFlow, cmd_type.c_str(), m_nNowAppend);
 
+	// 端口监控
 	if (cmd_type == "risky_port") {
 		ReqRiskyPort(request, m_nUniqueId);
 	} else if (cmd_type == "white_list") {
@@ -993,11 +994,6 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 	// to be deleted
 	LogInfo("CHttpServerApp::ReqRiskyPort()");
 
-	// ReqJobCreateList reqPacket;
-	// ReqJobCreate *packet = reqPacket.Append();
-
-	// packet->flag = 0;
-
 	ResultInfo result_info;
 
 	try {
@@ -1020,7 +1016,6 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("id") && request["id"].isInt())
 		{
-			// packet->clientModule = request["id"].asInt();
 			result_info.id = request["id"].asInt();
 		}
 		else
@@ -1032,8 +1027,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("ip") && request["ip"].isString())
 		{
-			// packet->clientModule = request["ip"].asString();		// 需转换为整型？
-			result_info.ip = request["ip"].asString();
+			result_info.ip = request["ip"].asString();		// 需转换为整型？
 		}
 		else
 		{
@@ -1044,7 +1038,6 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("port") && request["port"].isInt())
 		{
-			// packet->clientModule = request["port"].asInt();
 			result_info.port = request["port"].asInt();
 		}
 		else
@@ -1056,7 +1049,6 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("type") && request["type"].isString())
 		{
-			// packet->clientModule = request["type"].asString();
 			result_info.type = request["type"].asString();
 		}
 		else
@@ -1068,7 +1060,6 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("host") && request["host"].isString())
 		{
-			// packet->clientModule = request["host"].asString();
 			result_info.host = request["host"].asString();
 		}
 		else
@@ -1097,11 +1088,6 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 	// to be deleted
 	LogInfo("CHttpServerApp::ReqWhiteList()");
 
-	// ReqJobCreateList reqPacket;
-	// ReqJobCreate *packet = reqPacket.Append();
-
-	// packet->flag = 0;
-
 	ConfirmInfo confirm_info;
 
 	try {
@@ -1124,7 +1110,6 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("id") && request["id"].isInt())
 		{
-			// packet->clientModule = request["id"].asInt();
 			confirm_info.id = request["id"].asInt();
 		}
 		else
@@ -1136,7 +1121,6 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("stat") && request["stat"].isInt())
 		{
-			// packet->clientModule = request["stat"].asInt();
 			confirm_info.stat = request["stat"].asInt();
 		}
 		else
