@@ -111,14 +111,20 @@ int CMCDFrame::DispatchCCD() {
             data_len = 0;
             ret = m_pMQCCD2MCD->try_dequeue(m_pPacketBuf, m_nPacketBufSize, data_len, flow);
             if ((ret == 0) && (data_len > 0)) {
+				LogDebug("CMCDFrame::DispatchCCD(): ret = %d, data_len = %u", ret, data_len);
 				TCCDHeader * ccd_head = (TCCDHeader *)m_pPacketBuf;
+				LogDebug("CMCDFrame::DispatchCCD(): ccd_head->_type = %d", (int)ccd_head->_type);
 				if (ccd_head->_type != ccd_rsp_data)
+				{
+					LogDebug("CMCDFrame::DispatchCCD() continue: ccd_head->_type = %d", (int)ccd_head->_type);
 					continue;
+				}
                 size_t head_len = sizeof(TCCDHeader);
-
+				LogDebug("CMCDFrame::DispatchCCD(), head_len = %d", (int)head_len);
                 ret = (int)(data_len - head_len);
                 string test(m_pPacketBuf + head_len, ret);
                 unsigned int ip = ((TCCDHeader *)m_pPacketBuf)->_ip;
+				LogDebug("CMCDFrame::DispatchCCD(), %d", ip);
                 LogDebug("CMCDFrame::DispatchCCD( receive ccd data len: %d, flow id: %u, client ip: %s)", data_len, flow, IpIntToString(ip).c_str());
                 PrintStr("CMCDFrame::DispatchCCD( data content:\n", test, g_nLogStrLen, flow);
 
@@ -183,6 +189,7 @@ int CMCDFrame::DispatchDCC() {
 				}
             }
             else if (ret != 0 && (int)data_len > m_nPacketBufSize) {
+				LogDebug("CMCDFrame::DispatchDCC(), else if");
                 // 缓冲区大小不够
                 free(m_pPacketBuf);
                 m_nPacketBufSize = data_len;

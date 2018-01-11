@@ -18,7 +18,7 @@ INC += -I$(ASN)src/ -I$(SNACC) -I$(SNACC)c++-lib/inc/ -I$(HTTP_SERVER_INC) -I$(M
 INC += -I/usr/include/mysql -I/usr/local/mysqlpp/include/ -I/usr/include/jsoncpp -I/usr/local/curl64/include
 
 LIB = -ldl -lz -lrt /usr/local/curl/lib/libcurl.a $(ASN)lib64/libajs_asn.a $(SNACC)c++-lib/lib64/libasn1c++.a -lpthread $(MTNC_LIB)lib64/libmtnc_lib.a -ljson_linux-gcc-4.4.7_libmt
-LIB += -L/usr/local/mysqlpp/lib/ -L/usr/lib64/mysql/ -lmysqlpp -lmysqlclient
+LIB += -L/usr/local/mysqlpp/lib/ -L/usr/lib64/mysql/ -lmysqlpp -lmysqlclient -lidn -lrt
 
 CPP_SOURCES = $(wildcard *.cpp)
 C_SOURCES = $(wildcard *.c)
