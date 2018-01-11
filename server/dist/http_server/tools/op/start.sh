@@ -18,7 +18,7 @@ cd ../../bin/
 
 echo "$program_names" | while read program_name
 do
-    start_program $program_names "no_cfg"
+    start_program $program_names ""
     exit_code="$?"
     if [ $exit_code -ne 0 ]
     then

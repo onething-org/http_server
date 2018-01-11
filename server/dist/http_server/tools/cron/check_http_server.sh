@@ -14,5 +14,5 @@ cd ../../bin/
 
 echo "$program_names" | while read program_name
 do
-    check_program $program_name "no_cfg"
+    check_program $program_name ""
 done
