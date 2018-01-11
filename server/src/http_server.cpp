@@ -1084,7 +1084,12 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		return;
 	}
 
-	LogInfo("CHttpServerApp::ReqRiskyPort(). result_info: id: %d, ip: %s, port: %d, type %s, host: %s", result_info.id, result_info.ip, result_info.port, result_info.type, result_info.host);
+	LogInfo("CHttpServerApp::ReqRiskyPort(). result_info: id: %d, ip: %s, port: %d, type %s, host: %s", result_info.id, result_info.ip.c_str(), result_info.port, result_info.type.c_str(), result_info.host.c_str());
+
+	Json::Value response;
+	response["errno"] = 0;
+	response["error"] = "ok";
+	SendHttpRspByUniqueId(response, nUniqueId);
 }
 
 void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
@@ -1148,6 +1153,11 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 	}
 
 	LogInfo("CHttpServerApp::ReqWhiteList(). confirm_info: id: %d, stat: %d", confirm_info.id, confirm_info.stat);
+
+	Json::Value response;
+	response["errno"] = 0;
+	response["error"] = "ok";
+	SendHttpRspByUniqueId(response, nUniqueId);
 }
 
 void CHttpServerApp::ReqNormalPort(Json::Value &req, unsigned int nUniqueId)
@@ -1178,6 +1188,11 @@ void CHttpServerApp::ReqNormalPort(Json::Value &req, unsigned int nUniqueId)
         SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
 	}
+
+	Json::Value response;
+	response["errno"] = 0;
+	response["error"] = "ok";
+	SendHttpRspByUniqueId(response, nUniqueId);
 }
 
 void CHttpServerApp::ReqCreate(Json::Value &req, unsigned int nUniqueId)
