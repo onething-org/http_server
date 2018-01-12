@@ -910,13 +910,41 @@ void CHttpServerApp::AnalyzeRisk()
 		}
 	}
 
-	if (!m_riskIpPortType.empty())
+	// if (!m_riskIpPortType.empty())
+	// {
+	// 	for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
+	// 	{
+	// 		if (14700 == (*it).port || "tcp" == (*it).type)
+	// 		{
+	// 			LogInfo("Risk Alarm! Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
+	// 		}
+	// 	}
+	// }
+
+	if (!m_riskyPorts_set.empty())
 	{
-		for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
+		for (set<unsigned int>::iterator iti = m_riskyPorts_set.begin(); iti != m_riskyPorts_set.end(); ++iti)
 		{
-			if (14700 == (*it).port || "tcp" == (*it).type)
+			for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
 			{
-				LogInfo("Risk Alarm! Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
+				if ((*iti) == (*it).port)
+				{
+					LogInfo("Risk Alarm! Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
+				}
+			}
+		}
+	}
+
+	if (!m_riskyServices_set.empty())
+	{
+		for (set<string>::iterator its = m_riskyServices_set.begin(); its != m_riskyServices_set.end(); ++its)
+		{
+			for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
+			{
+				if ((*its) == (*it).port)
+				{
+					LogInfo("Risk Alarm! Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
+				}
 			}
 		}
 	}
