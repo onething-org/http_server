@@ -941,7 +941,7 @@ void CHttpServerApp::AnalyzeRisk()
 		{
 			for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
 			{
-				if ((*its) == (*it).port)
+				if ((*its) == (*it).type)
 				{
 					LogInfo("Risk Alarm! Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
 				}
