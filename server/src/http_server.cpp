@@ -868,9 +868,17 @@ void CHttpServerApp::AnalyzeRisk()
 
 	if (!m_riskPortTypeInfo.empty())
 	{
-		for (map<string, PortType>::iterator it = m_riskPortTypeInfo.begin(), it != m_riskPortTypeInfo.end(); ++it)
+		for (map<string, PortType>::iterator it = m_riskPortTypeInfo.begin(); it != m_riskPortTypeInfo.end(); ++it)
 		{
 			LogInfo("CHttpServerApp::AnalyzeRisk(). Risky info: ip: %s, port: %d, type %s, host: %s", it->first.c_str(), it->second.port, it->second.type.c_str(), it->second.hostname.c_str());
+		}
+	}
+
+	if (!m_riskIpPortType.empty())
+	{
+		for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
+		{
+			LogInfo("CHttpServerApp::AnalyzeRisk(). m_riskIpPortType. Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
 		}
 	}
 }
@@ -1019,6 +1027,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 	ResultInfo result_info;
 	string iptmp;
+	PortTypeHost pth;
 
 	try {
 
@@ -1053,6 +1062,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		{
 			result_info.ip = request["ip"].asString();		// 需转换为整型？
 			iptmp = request["ip"].asString();
+			pth.ip = request["ip"].asString();
 		}
 		else
 		{
@@ -1065,6 +1075,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		{
 			result_info.port = request["port"].asInt();
 			m_riskPortTypeInfo[iptmp].port = request["port"].asInt();
+			pth.port = request["port"].asInt();
 		}
 		else
 		{
@@ -1077,6 +1088,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		{
 			result_info.type = request["type"].asString();
 			m_riskPortTypeInfo[iptmp].type = request["type"].asString();
+			pth.type = request["type"].asString();
 		}
 		else
 		{
@@ -1089,6 +1101,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		{
 			result_info.host = request["host"].asString();
 			m_riskPortTypeInfo[iptmp].hostname = request["host"].asString();
+			pth.hostname = request["host"].asString();
 		}
 		else
 		{
@@ -1102,6 +1115,8 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
 	}
+
+	m_riskIpPortType.insert(pth);
 
 	LogInfo("CHttpServerApp::ReqRiskyPort(). result_info: id: %d, ip: %s, port: %d, type %s, host: %s", result_info.id, result_info.ip.c_str(), result_info.port, result_info.type.c_str(), result_info.host.c_str());
 

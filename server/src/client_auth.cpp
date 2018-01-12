@@ -95,7 +95,7 @@ void CClientAuth::Run()
 				m_AuthInfos.insert(make_pair(client_module, info));
 			}
 
-			Query queryT 
+			Query queryT = GetQuery();
 			queryT << "";
 			StoreQueryResult resultT;
 			Store(resultT, queryT);

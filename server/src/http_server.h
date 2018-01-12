@@ -42,6 +42,14 @@ typedef struct __PORT_TYPE
     string hostname;
 } PortType;
 
+typedef struct __IP_PORT_TYPE
+{
+    string ip;
+    unsigned int port;
+    string type;
+    string hostname;
+} IpPortType;
+
 typedef struct __SYNC_REQ_INFO {
 	enum {                                   //同步任务状态
 		CREATE_SYNC_WAIT_REQ_CREATE = 0,
@@ -371,4 +379,5 @@ private:
     int m_analyzeRiskTimeInterval;
 
     map<string, PortType> m_riskPortTypeInfo;
+    set<IpPortType> m_riskIpPortType;
 };
