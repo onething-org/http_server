@@ -255,12 +255,40 @@ void CHttpServerApp::LoadCfg()
 
 	}
 
+	// risky ports
 	{
-		/*
-		//agent list
-		SplitDataToVector(m_agentList, cfgFile.GetIni("agent_lists"), ",");
-		m_nCurrentAgent = 0;
-		*/
+		string risky_ports = cfgFile.GetIni("risky_ports", "");
+		LogInfo("CHttpServerApp::LoadCfg(risky_ports :%s)", risky_ports.c_str());
+
+		vector<string> v_ports_s;
+		SplitDataToVector(v_ports_s, risky_ports, "|");
+		m_riskyPorts_set.clear();
+		for(size_t i = 0; i != v_ports_s.size(); ++i)
+		{
+			unsigned int ipt;
+			if (IpStringToInt(ipt, Trim(v_ports_s[i])) == 0)
+			{
+				m_riskyPorts_set.insert(ipt);
+				LogInfo("CHttpServerApp::LoadCfg(port: %s)", v_ports_s[i].c_str());
+			}
+			else 
+				LogError("CHttpServerApp::LoadCfg(invalid conf port: %s)", v_ports_s[i].c_str());
+		}
+	}
+
+	// risky services
+	{
+		string risky_services = cfgFile.GetIni("risky_services", "");
+		LogInfo("CHttpServerApp::LoadCfg(risky_services :%s)", risky_services.c_str());
+
+		vector<string> v_services_s;
+		SplitDataToVector(v_services_s, risky_services, "|");
+		m_riskyServices_set.clear();
+		for(size_t i = 0; i != v_services_s.size(); ++i)
+		{
+			m_riskyServices_set.insert(v_services_s[i]);
+			LogInfo("CHttpServerApp::LoadCfg(service: %s)", v_services_s[i].c_str());
+		}
 	}
 
 	// json参数检查配置

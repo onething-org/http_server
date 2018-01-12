@@ -46,3 +46,5 @@ serial_server_port = 13999
 serial_server_schedule_time_interval = 0
 
 analyze_risk_time_interval = 60
+risky_ports = 22|80|443|6379
+risky_services = ssh|redis
