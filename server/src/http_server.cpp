@@ -881,6 +881,17 @@ void CHttpServerApp::AnalyzeRisk()
 			LogInfo("CHttpServerApp::AnalyzeRisk(). m_riskIpPortType. Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
 		}
 	}
+
+	if (!m_riskIpPortType.empty())
+	{
+		for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
+		{
+			if (14700 == (*it).port || "tcp" == (*it).type)
+			{
+				LogInfo("Risk Alarm! Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
+			}
+		}
+	}
 }
 
 void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
