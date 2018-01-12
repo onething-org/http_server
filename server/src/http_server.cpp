@@ -865,6 +865,14 @@ void CHttpServerApp::TimeoutHandler()
 void CHttpServerApp::AnalyzeRisk()
 {
 	LogDebug("CHttpServerApp::AnalyzeRisk()");
+
+	if (!m_riskPortTypeInfo.empty())
+	{
+		for (map<string, PortType>::iterator it = m_riskPortTypeInfo.begin(), it != m_riskPortTypeInfo.end(); ++it)
+		{
+			LogInfo("CHttpServerApp::AnalyzeRisk(). Risky info: ip: %s, port: %d, type %s, host: %s", it->first.c_str(), it->second.port, it->second.type.c_str(), it->second.hostname.c_str());
+		}
+	}
 }
 
 void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
@@ -1010,6 +1018,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 	LogInfo("CHttpServerApp::ReqRiskyPort()");
 
 	ResultInfo result_info;
+	string iptmp;
 
 	try {
 
@@ -1043,6 +1052,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		if (request.isMember("ip") && request["ip"].isString())
 		{
 			result_info.ip = request["ip"].asString();		// 需转换为整型？
+			iptmp = request["ip"].asString();
 		}
 		else
 		{
@@ -1054,6 +1064,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		if (request.isMember("port") && request["port"].isInt())
 		{
 			result_info.port = request["port"].asInt();
+			m_riskPortTypeInfo[iptmp].port = request["port"].asInt();
 		}
 		else
 		{
@@ -1065,6 +1076,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		if (request.isMember("type") && request["type"].isString())
 		{
 			result_info.type = request["type"].asString();
+			m_riskPortTypeInfo[iptmp].type = request["type"].asString();
 		}
 		else
 		{
@@ -1076,6 +1088,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		if (request.isMember("host") && request["host"].isString())
 		{
 			result_info.host = request["host"].asString();
+			m_riskPortTypeInfo[iptmp].hostname = request["host"].asString();
 		}
 		else
 		{

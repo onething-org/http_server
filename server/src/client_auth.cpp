@@ -95,7 +95,10 @@ void CClientAuth::Run()
 				m_AuthInfos.insert(make_pair(client_module, info));
 			}
 
-			query << "";
+			Query queryT 
+			queryT << "";
+			StoreQueryResult resultT;
+			Store(resultT, queryT);
 
 			DisConnect();
 			m_httpServerApp->UpdateModuleAuth(m_AuthInfos);
