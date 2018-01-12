@@ -325,22 +325,20 @@ void CHttpServerApp::OnExpire(unsigned int nUniqueId)
 {
 	//同步任务向js的请求超时
     map<unsigned int, SyncReqInfo>::iterator clientIt = m_mapSyncReqInfo.find(nUniqueId);
-	if (clientIt == m_mapSyncReqInfo.end()) {
-		LogWarning(
-				"CHttpServerApp::OnExpire(client id is not exist. flow id: %u)",
-                nUniqueId);
+	if (clientIt == m_mapSyncReqInfo.end())
+	{
+		LogWarning("CHttpServerApp::OnExpire(client id is not exist. flow id: %u)", nUniqueId);
 		return;
 	}
 
-	if (clientIt->second.status == SyncReqInfo::CREATE_SYNC_WAIT_RSP_QUERY_FIELD
-			&& clientIt->second.retry_count-- > 0) {
-
-		LogDebug("CHttpServerApp::OnExpire(we will send query packet next time. flow id: %u, left retry count: %d)",
-                nUniqueId, clientIt->second.retry_count);
+	if (clientIt->second.status == SyncReqInfo::CREATE_SYNC_WAIT_RSP_QUERY_FIELD && clientIt->second.retry_count-- > 0)
+	{
+		LogDebug("CHttpServerApp::OnExpire(we will send query packet next time. flow id: %u, left retry count: %d)", nUniqueId, clientIt->second.retry_count);
 		clientIt->second.status = SyncReqInfo::CREATE_SYNC_WAIT_REQ_QUERY_FIELD;
-	} else {
+	}
+	else
+	{
         SendErrHttpRspByUniqueId(GATWAY_TIMEOUT, GATWAY_TIMEOUT_REASON, nUniqueId);
-
         m_mapSyncReqInfo.erase(nUniqueId);
         LogWarning("CHttpServerApp::OnExpire(flow id: %u)", nUniqueId);
 	}
@@ -352,15 +350,20 @@ void CHttpServerApp::OnTimer(time_t cur)
 	//发送
 	DealSyncTasks(cur);
 
-	if(cur > g_timeLastClearAsyncJob) {
-		if ( cur - g_timeLastClearAsyncJob > g_nClearAsyncTimeInterval ) {
+	if (cur > g_timeLastClearAsyncJob)
+	{
+		if (cur - g_timeLastClearAsyncJob > g_nClearAsyncTimeInterval)
+		{
 			//LogDebug("CHttpServerApp::OnTimer(cur_time: %u, last clear time: %u, interval: %d)",
 			//		(unsigned int)cur, (unsigned int)g_timeLastClearAsyncJob, g_nClearAsyncTimeInterval);
 			DealAsyncTasks(cur);
 			g_timeLastClearAsyncJob = cur;
 		}
-	} else
+	}
+	else
+	{
 		g_timeLastClearAsyncJob = cur;
+	}
 
 	//调整BUFFER大小
 	AdjustAsnBuf(cur);
@@ -374,12 +377,14 @@ void CHttpServerApp::OnTimer(time_t cur)
 void CHttpServerApp::DealSyncTasks(time_t cur)
 {
 	map<unsigned int, SyncReqInfo>::iterator it = m_mapSyncReqInfo.begin();
-	while ( it != m_mapSyncReqInfo.end()){
-
-		if ( cur > it->second.last_send_time ){
-			if ( (int)g_sleepTime > 0 && (int)cur - (int)it->second.last_send_time >= (int)g_sleepTime ){
+	while (it != m_mapSyncReqInfo.end())
+	{
+		if (cur > it->second.last_send_time)
+		{
+			if ((int)g_sleepTime > 0 && (int)cur - (int)it->second.last_send_time >= (int)g_sleepTime)
+			{
 				ReqJobQueryFieldList reqPacket;
-				ReqJobQueryField* req_field = reqPacket.Append();
+				ReqJobQueryField *req_field = reqPacket.Append();
 
 				req_field->jobId = it->second.job_id;
 				req_field->step = g_nDefaultStep;
@@ -388,22 +393,21 @@ void CHttpServerApp::DealSyncTasks(time_t cur)
 
 				SyncReqInfo &info = it->second;
 
-				int ret = SendPacketToDCC(reqPacket,
-                        Ajs::reqJobQueryFieldListCid, info.uniq_id,
-						it->second.ip, it->second.port);
-				if (ret != 0) {
-                    SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR,
-                            INTERNET_SERVER_ERROR_REASON, info.uniq_id);
+				int ret = SendPacketToDCC(reqPacket, Ajs::reqJobQueryFieldListCid, info.uniq_id, it->second.ip, it->second.port);
+				if (ret != 0)
+				{
+					SendErrHttpRspByUniqueId(INTERNET_SERVER_ERROR, INTERNET_SERVER_ERROR_REASON, info.uniq_id);
 					m_mapSyncReqInfo.erase(it++);
 					continue;
 				}
-				info.status =
-						SyncReqInfo::CREATE_SYNC_WAIT_RSP_QUERY_FIELD;
+				info.status = SyncReqInfo::CREATE_SYNC_WAIT_RSP_QUERY_FIELD;
 				info.last_send_time = g_nNowTime;
 
                 AddToTimeoutQueue(info.uniq_id, g_jobServerTimeOut);
 			}
-		} else {
+		} 
+		else
+		{
 			LogWarning("CHttpServerApp::DealSyncTasks(the time of system has been changed!) ");
 			it->second.last_send_time = cur;
 		}
@@ -414,17 +418,20 @@ void CHttpServerApp::DealSyncTasks(time_t cur)
 void CHttpServerApp::DealAsyncTasks(time_t cur)
 {
 	map<unsigned int, AsyncReqInfo>::iterator it = m_mapAsyncReqInfo.begin();
-	while ( it != m_mapAsyncReqInfo.end()){
-
-		if ( cur > it->second.create_time ){
-			if ((int)cur - (int)it->second.create_time >= (int)g_jobServerTimeOut ){
-				LogWarning("CHttpServerApp::DealAsyncTasks(async job time out. flow id: %u, time_out: %d)",
-										it->first, (int)(cur - it->second.create_time));
+	while (it != m_mapAsyncReqInfo.end())
+	{
+		if (cur > it->second.create_time)
+		{
+			if ((int)cur - (int)it->second.create_time >= (int)g_jobServerTimeOut)
+			{
+				LogWarning("CHttpServerApp::DealAsyncTasks(async job time out. flow id: %u, time_out: %d)", it->first, (int)(cur - it->second.create_time));
 				m_mapAsyncReqInfo.erase(it++);
 				continue;
 			}
-		} else {
-			LogWarning("CHttpServerApp::DealAsyncTasks(the time of system has been changed!) ");
+		}
+		else
+		{
+			LogWarning("CHttpServerApp::DealAsyncTasks(the time of system has been changed!)");
 			it->second.create_time = cur;
 		}
 		it++;
@@ -433,11 +440,17 @@ void CHttpServerApp::DealAsyncTasks(time_t cur)
 
 void CHttpServerApp::AdjustAsnBuf(time_t cur)
 {
-	if ( cur > m_adjustBufferLastTime ) {
-		if ( m_adjustBufferTimeInterval > 0 && cur - m_adjustBufferLastTime >= m_adjustBufferTimeInterval ){
+	if (cur > m_adjustBufferLastTime)
+	{
+		if (m_adjustBufferTimeInterval > 0 && cur - m_adjustBufferLastTime >= m_adjustBufferTimeInterval)
+		{
 			AdjustAsnBufToDefault();
 			m_adjustBufferLastTime = cur;
-		} else return;
+		}
+		else
+		{
+			return;
+		}
 	} 
 	m_adjustBufferLastTime = cur;
 }
@@ -450,10 +463,9 @@ void CHttpServerApp::AdjustUniqueBuf(time_t cur)
         {
             LogInfo("CHttpServerApp::AdjustUniqueBuf(before adjust, the size is : %d)", m_mapUniqueId.size());
 
-            for(map<unsigned int, unsigned long long>::iterator it = m_mapUniqueId.begin(); it != m_mapUniqueId.end(); ++it)
+            for (map<unsigned int, unsigned long long>::iterator it = m_mapUniqueId.begin(); it != m_mapUniqueId.end(); ++it)
             {
-                if(m_mapSyncReqInfo.find(it->first) == m_mapSyncReqInfo.end()
-                        && m_mapAsyncReqInfo.find(it->first) == m_mapAsyncReqInfo.end())
+				if(m_mapSyncReqInfo.find(it->first) == m_mapSyncReqInfo.end() && m_mapAsyncReqInfo.find(it->first) == m_mapAsyncReqInfo.end())
                 {
                     m_mapUniqueId.erase(it++);
                     continue;
@@ -476,13 +488,14 @@ void CHttpServerApp::AdjustUniqueBuf(time_t cur)
 
 void CHttpServerApp::LogStatisticInfo(time_t cur)
 {
-	if ( m_logStatisticLastTime >= cur){
+	if (m_logStatisticLastTime >= cur)
+	{
 		m_logStatisticLastTime = cur;
 		return;
 	}
 
-	if ( m_logStatisticTimeInterval > 0 && cur - m_logStatisticLastTime >= m_logStatisticTimeInterval ) {
-
+	if (m_logStatisticTimeInterval > 0 && cur - m_logStatisticLastTime >= m_logStatisticTimeInterval)
+	{
 		m_pStatistic->AddStat("CcdRequests", 0, NULL, NULL, NULL, m_nCcdRequests);
 		m_pStatistic->AddStat("DccReceives", 0, NULL, NULL, NULL, m_nDccReceives);
 
@@ -502,19 +515,21 @@ void CHttpServerApp::LogStatisticInfo(time_t cur)
 		m_nInvalidDccReceives = 0;
 		m_nTimeOutedDccReceives = 0;
 	}
-
 }
 
 void CHttpServerApp::OnSignalUser1()
 {
 	LogInfo("RECEIVE SIGNAL USR1");
 	LoadCfg();
-	if (m_bPrintJobServerInfo){
+
+	if (m_bPrintJobServerInfo)
+	{
 		PrintJobServerInfos();
 		m_bPrintJobServerInfo = false;
 		return;
 	}
-	//初始化调度类
+
+	// 初始化调度类
 	m_pScheduler->Init(m_schedulerJobServer_set);
 
 	return;

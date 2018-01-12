@@ -79,8 +79,7 @@ void CClientAuth::Run()
 			}
 
 			Query query = GetQuery();
-			query
-				<< "select client_module, password, disable from tb_user";
+			query << "select client_module, password, disable from tb_user";
 			StoreQueryResult result;
 			Store(result, query);
 
@@ -95,6 +94,8 @@ void CClientAuth::Run()
 				info.passwd = password;
 				m_AuthInfos.insert(make_pair(client_module, info));
 			}
+
+			query << "";
 
 			DisConnect();
 			m_httpServerApp->UpdateModuleAuth(m_AuthInfos);
