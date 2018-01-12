@@ -48,6 +48,18 @@ typedef struct __IP_PORT_TYPE
     unsigned int port;
     string type;
     string hostname;
+
+    bool operator < (const __IP_PORT_TYPE &other) const
+    {
+        if (ip < other.ip)
+            return true;
+        else if (port < other.port)
+            return true;
+        else if (type < other.type)
+            return true;
+        else
+            return false;
+    }
 } IpPortType;
 
 typedef struct __SYNC_REQ_INFO {

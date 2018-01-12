@@ -1027,7 +1027,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 	ResultInfo result_info;
 	string iptmp;
-	PortTypeHost pth;
+	IpPortType ipth;
 
 	try {
 
@@ -1062,7 +1062,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		{
 			result_info.ip = request["ip"].asString();		// 需转换为整型？
 			iptmp = request["ip"].asString();
-			pth.ip = request["ip"].asString();
+			ipth.ip = request["ip"].asString();
 		}
 		else
 		{
@@ -1075,7 +1075,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		{
 			result_info.port = request["port"].asInt();
 			m_riskPortTypeInfo[iptmp].port = request["port"].asInt();
-			pth.port = request["port"].asInt();
+			ipth.port = request["port"].asInt();
 		}
 		else
 		{
@@ -1088,7 +1088,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		{
 			result_info.type = request["type"].asString();
 			m_riskPortTypeInfo[iptmp].type = request["type"].asString();
-			pth.type = request["type"].asString();
+			ipth.type = request["type"].asString();
 		}
 		else
 		{
@@ -1101,7 +1101,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		{
 			result_info.host = request["host"].asString();
 			m_riskPortTypeInfo[iptmp].hostname = request["host"].asString();
-			pth.hostname = request["host"].asString();
+			ipth.hostname = request["host"].asString();
 		}
 		else
 		{
@@ -1110,13 +1110,13 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 			return;
 		}
 
+		m_riskIpPortType.insert(ipth);
+
 	} catch (exception &e) {
 		LogWarning("CHttpServerApp::ReqRiskyPort(catch an exception, flow id: %u)", nUniqueId);
 		SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
 	}
-
-	m_riskIpPortType.insert(pth);
 
 	LogInfo("CHttpServerApp::ReqRiskyPort(). result_info: id: %d, ip: %s, port: %d, type %s, host: %s", result_info.id, result_info.ip.c_str(), result_info.port, result_info.type.c_str(), result_info.host.c_str());
 
