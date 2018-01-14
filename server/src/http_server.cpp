@@ -932,6 +932,7 @@ void CHttpServerApp::AnalyzeRisk()
 	// 	}
 	// }
 
+    LogInfo("Size of m_riskyPorts_s: %d", m_riskyPorts_set.size());
 	if (!m_riskyPorts_set.empty())
 	{
 		for (set<unsigned int>::iterator iti = m_riskyPorts_set.begin(); iti != m_riskyPorts_set.end(); ++iti)
@@ -946,6 +947,7 @@ void CHttpServerApp::AnalyzeRisk()
 		}
 	}
 
+    LogInfo("Size of m_riskyServices_set: %d", m_riskyServices_set.size());
 	if (!m_riskyServices_set.empty())
 	{
 		for (set<string>::iterator its = m_riskyServices_set.begin(); its != m_riskyServices_set.end(); ++its)
