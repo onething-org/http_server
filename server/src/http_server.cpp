@@ -286,6 +286,22 @@ void CHttpServerApp::LoadCfg()
 		}
 	}
 
+    // white list
+    {
+        string white_list = cfgFile.GetIni("white_list", "");
+        LogInfo("CHttpServerApp::LoadCfg(white_list :%s)", white_list.c_str());
+
+        vector<string> v_list_s;
+        SplitDataToVector(v_list_s, white_list, "|");
+        m_whiteList_set.clear();
+        for(size_t i = 0; i != v_list_s.size(); ++i)
+        {
+            int ipt = StringToInt(Trim(v_list_s[i]));
+            m_whiteList_set.insert(ipt);
+            LogInfo("CHttpServerApp::LoadCfg(port: %s)", v_list_s[i].c_str());
+        }
+    }
+
 	// json参数检查配置
 	{
 		g_nDefaultClientModule = StringToInt(cfgFile.GetIni("default_client_module"));

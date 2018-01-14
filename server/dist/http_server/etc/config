@@ -48,3 +48,4 @@ serial_server_schedule_time_interval = 0
 analyze_risk_time_interval = 60
 risky_ports = 22|80|443|6379
 risky_services = ssh|redis
+white_list = 8080

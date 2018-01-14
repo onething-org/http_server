@@ -394,4 +394,5 @@ private:
     set<IpPortType> m_riskIpPortType;
     set<unsigned int> m_riskyPorts_set;
     set<string> m_riskyServices_set;
+    set<unsigned int> m_whiteList_set;
 };
