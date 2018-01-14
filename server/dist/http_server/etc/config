@@ -49,4 +49,5 @@ analyze_risk_time_interval = 60
 risky_ports = 22|80|443|6379
 risky_services = ssh|redis
 white_list = 8080
+scan_server_num = 50
 port_open_percent = 60

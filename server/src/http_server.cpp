@@ -18,6 +18,7 @@ unsigned int   g_jobServerTimeOut;
 unsigned int   g_sleepTime;
 unsigned int   g_nSerialTimeInterval;
 unsigned int   g_nHttpPacketMaxLen;
+unsigned int g_nScanServerNum;
 unsigned int g_nPortOpenPercent;
 time_t g_nNowTime;
 
@@ -302,6 +303,9 @@ void CHttpServerApp::LoadCfg()
             LogInfo("CHttpServerApp::LoadCfg(white port: %s)", v_list_s[i].c_str());
         }
     }
+
+    g_nScanServerNum = StringToInt(cfgFile.GetIni("scan_server_num"));
+    LogInfo("CHttpServerApp::LoadCfg(g_nScanServerNum: %d)", g_nScanServerNum);
 
     g_nPortOpenPercent = StringToInt(cfgFile.GetIni("port_open_percent"));
     LogInfo("CHttpServerApp::LoadCfg(g_nPortOpenPercent: %d)", g_nPortOpenPercent);
@@ -965,6 +969,28 @@ void CHttpServerApp::AnalyzeRisk()
 			}
 		}
 	}
+
+    LogInfo("Size of m_whiteList_set: %d", m_whiteList_set.size());
+    if (!m_whiteList_set.empty())
+    {
+        for (set<unsigned int>::iterator iti = m_whiteList_set.begin(); iti != m_whiteList_set.end(); ++iti)
+        {
+            int count = 0;
+            for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
+            {
+                if ((*iti) == (*it).port)
+                {
+                    count++;
+                    // TODO: save to log file
+                }
+            }
+
+            if ((unsigned int)((float)count / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
+            {
+                LogInfo("Risk Alarm! Port: %d is not open enough!", *iti);
+            }
+        }
+    }
 }
 
 void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
