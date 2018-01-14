@@ -267,7 +267,7 @@ void CHttpServerApp::LoadCfg()
 		{
 			int ipt = StringToInt(Trim(v_ports_s[i]));
 			m_riskyPorts_set.insert(ipt);
-			LogInfo("CHttpServerApp::LoadCfg(port: %s)", v_ports_s[i].c_str());
+			LogInfo("CHttpServerApp::LoadCfg(risky port: %s)", v_ports_s[i].c_str());
 		}
 	}
 
@@ -282,7 +282,7 @@ void CHttpServerApp::LoadCfg()
 		for(size_t i = 0; i != v_services_s.size(); ++i)
 		{
 			m_riskyServices_set.insert(v_services_s[i]);
-			LogInfo("CHttpServerApp::LoadCfg(service: %s)", v_services_s[i].c_str());
+			LogInfo("CHttpServerApp::LoadCfg(risky service: %s)", v_services_s[i].c_str());
 		}
 	}
 
@@ -298,7 +298,7 @@ void CHttpServerApp::LoadCfg()
         {
             int ipt = StringToInt(Trim(v_list_s[i]));
             m_whiteList_set.insert(ipt);
-            LogInfo("CHttpServerApp::LoadCfg(port: %s)", v_list_s[i].c_str());
+            LogInfo("CHttpServerApp::LoadCfg(white port: %s)", v_list_s[i].c_str());
         }
     }
 
