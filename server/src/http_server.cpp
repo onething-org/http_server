@@ -265,14 +265,9 @@ void CHttpServerApp::LoadCfg()
 		m_riskyPorts_set.clear();
 		for(size_t i = 0; i != v_ports_s.size(); ++i)
 		{
-			unsigned int ipt;
-			if (IpStringToInt(ipt, Trim(v_ports_s[i])) == 0)
-			{
-				m_riskyPorts_set.insert(ipt);
-				LogInfo("CHttpServerApp::LoadCfg(port: %s)", v_ports_s[i].c_str());
-			}
-			else 
-				LogError("CHttpServerApp::LoadCfg(invalid conf port: %s)", v_ports_s[i].c_str());
+			int ipt = StringToInt(Trim(v_ports_s[i]));
+			m_riskyPorts_set.insert(ipt);
+			LogInfo("CHttpServerApp::LoadCfg(port: %s)", v_ports_s[i].c_str());
 		}
 	}
 
