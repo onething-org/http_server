@@ -1,7 +1,7 @@
 #ifndef __PARAM_CHECK_H__
 #define __PARAM_CHECK_H__
 
-#include "ajs_define.h"
+#include "../include/ajs_define.h"
 #include "util.h"
 
 static string g_strProxyType;
