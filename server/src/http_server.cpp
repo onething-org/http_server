@@ -18,6 +18,7 @@ unsigned int   g_jobServerTimeOut;
 unsigned int   g_sleepTime;
 unsigned int   g_nSerialTimeInterval;
 unsigned int   g_nHttpPacketMaxLen;
+unsigned int g_nPortOpenPercent;
 time_t g_nNowTime;
 
 static const string BAD_JSON_REQUEST_REASON = CAjsErrorNoToStr::ErrorNoToStr(BAD_JSON_REQUEST);
@@ -301,6 +302,9 @@ void CHttpServerApp::LoadCfg()
             LogInfo("CHttpServerApp::LoadCfg(white port: %s)", v_list_s[i].c_str());
         }
     }
+
+    g_nPortOpenPercent = StringToInt(cfgFile.GetIni("port_open_percent"));
+    LogInfo("CHttpServerApp::LoadCfg(g_nPortOpenPercent: %d)", g_nPortOpenPercent);
 
 	// json参数检查配置
 	{
