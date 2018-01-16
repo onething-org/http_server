@@ -970,6 +970,7 @@ void CHttpServerApp::AnalyzeRisk()
 		}
 	}
 
+	/*
     LogInfo("Size of m_whiteList_set: %d", m_whiteList_set.size());
     if (!m_whiteList_set.empty())
     {
@@ -991,6 +992,7 @@ void CHttpServerApp::AnalyzeRisk()
             }
         }
     }
+    */
 
     LogInfo("Size of m_IpPort_Host_map: %d", m_IpPort_Host_map.size());
     if (!m_IpPort_Host_map.empty())
@@ -998,6 +1000,10 @@ void CHttpServerApp::AnalyzeRisk()
         for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
         {
             LogInfo("m_IpPort_Host_map: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
+            if ((unsigned int)((float)it->second.size() / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
+            {
+                LogInfo("Risk Alarm! IP Port: %s is not open enough!", it->first.c_str());
+            }
         }
     }
 }
