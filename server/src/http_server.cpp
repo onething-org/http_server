@@ -991,6 +991,15 @@ void CHttpServerApp::AnalyzeRisk()
             }
         }
     }
+
+    LogInfo("Size of m_resultWhiteList_mmap: %d", m_resultWhiteList_mmap.size());
+    if (!m_resultWhiteList_mmap.empty())
+    {
+        for (multimap<string, string>::iterator it = m_resultWhiteList_mmap.begin(); it != m_resultWhiteList_mmap.end(); ++it)
+        {
+            LogInfo("m_resultWhiteList_mmap: ipport: %s, host: %s", it->first.c_str(), it->second.c_str());
+        }
+    }
 }
 
 void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
@@ -1241,8 +1250,6 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 	// to be deleted
 	LogInfo("CHttpServerApp::ReqWhiteList()");
 
-	ConfirmInfo confirm_info;
-
 	try {
 
 		if (req["json_job"].isNull())
@@ -1253,6 +1260,8 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 		}
 
 		Json::Value &request = req["json_job"];
+		string ip_port;
+		string hostname;
 
 		if (!request.isObject())
 		{
@@ -1261,27 +1270,41 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 			return;
 		}
 
-		if (request.isMember("id") && request["id"].isInt())
+		if (request.isMember("ip") && request["ip"].isString())
 		{
-			confirm_info.id = request["id"].asInt();
+			ip_port = request["ip"].asString();
 		}
 		else
 		{
-			LogWarning("CHttpServerApp::ReqWhiteList(Json:: id is invalid, flow id: %u)", nUniqueId);
-			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'id', error: 'invalid value'", nUniqueId);
+			LogWarning("CHttpServerApp::ReqWhiteList(Json:: ip is invalid, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'ip', error: 'invalid value'", nUniqueId);
 			return;
 		}
 
-		if (request.isMember("stat") && request["stat"].isInt())
+		if (request.isMember("port") && request["port"].isInt())
 		{
-			confirm_info.stat = request["stat"].asInt();
+			ip_port += ":";
+			ip_port += IntToString(request["port"].asInt());
 		}
 		else
 		{
-			LogWarning("CHttpServerApp::ReqWhiteList(Json:: stat is invalid, flow id: %u)", nUniqueId);
-			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'stat', error: 'invalid value'", nUniqueId);
+			LogWarning("CHttpServerApp::ReqWhiteList(Json:: port is invalid, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'port', error: 'invalid value'", nUniqueId);
 			return;
 		}
+
+		if (request.isMember("host") && request["host"].isString())
+		{
+			hostname = request["host"].asString();
+		}
+		else
+		{
+			LogWarning("CHttpServerApp::ReqWhiteList(Json:: host is invalid, flow id: %u)", nUniqueId);
+			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'host', error: 'invalid value'", nUniqueId);
+			return;
+		}
+
+		m_resultWhiteList_mmap.insert(pair<string, string>(ip_port, hostname));
 
 	} catch (exception &e) {
 		LogWarning("CHttpServerApp::ReqWhiteList(catch an exception, flow id: %u)", nUniqueId);
