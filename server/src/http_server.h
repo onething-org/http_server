@@ -396,4 +396,5 @@ private:
     set<string> m_riskyServices_set;
     set<unsigned int> m_whiteList_set;
     multimap<string, string> m_resultWhiteList_mmap;
+    map<string, set<string> > m_IpPort_Host_map;
 };

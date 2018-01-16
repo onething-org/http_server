@@ -992,12 +992,12 @@ void CHttpServerApp::AnalyzeRisk()
         }
     }
 
-    LogInfo("Size of m_resultWhiteList_mmap: %d", m_resultWhiteList_mmap.size());
-    if (!m_resultWhiteList_mmap.empty())
+    LogInfo("Size of m_IpPort_Host_map: %d", m_IpPort_Host_map.size());
+    if (!m_IpPort_Host_map.empty())
     {
-        for (multimap<string, string>::iterator it = m_resultWhiteList_mmap.begin(); it != m_resultWhiteList_mmap.end(); ++it)
+        for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
         {
-            LogInfo("m_resultWhiteList_mmap: ipport: %s, host: %s", it->first.c_str(), it->second.c_str());
+            LogInfo("m_resultWhiteList_mmap: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
         }
     }
 }
@@ -1304,15 +1304,13 @@ void CHttpServerApp::ReqWhiteList(Json::Value &req, unsigned int nUniqueId)
 			return;
 		}
 
-		m_resultWhiteList_mmap.insert(pair<string, string>(ip_port, hostname));
+		m_IpPort_Host_map[ip_port].insert(hostname);
 
 	} catch (exception &e) {
 		LogWarning("CHttpServerApp::ReqWhiteList(catch an exception, flow id: %u)", nUniqueId);
 		SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
 	}
-
-	LogInfo("CHttpServerApp::ReqWhiteList(). confirm_info: id: %d, stat: %d", confirm_info.id, confirm_info.stat);
 
 	Json::Value response;
 	response["errno"] = 0;
