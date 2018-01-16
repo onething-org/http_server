@@ -997,7 +997,7 @@ void CHttpServerApp::AnalyzeRisk()
     {
         for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
         {
-            LogInfo("m_resultWhiteList_mmap: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
+            LogInfo("m_IpPort_Host_map: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
         }
     }
 }
