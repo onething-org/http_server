@@ -1007,7 +1007,14 @@ void CHttpServerApp::AnalyzeRisk()
             if ((unsigned int)((float)it->second.size() / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
             {
                 LogInfo("Risk Alarm! IP Port: %s is not open enough!", it->first.c_str());
-                PostUrl(g_strDefaultUrl, f);
+                Json::Value fields;
+                fields["object"] = it->first;
+                fields["content"] = "open not enough!";
+                fields["host"] = it->first;
+                fields["id"] = 80;      // 白名单端口不通
+                Json::StyledWriter writer;
+                string s_fields = writer.write(fields);
+                PostUrl(g_strDefaultUrl, s_fields);
             }
         }
     }
