@@ -20,7 +20,7 @@ unsigned int   g_nSerialTimeInterval;
 unsigned int   g_nHttpPacketMaxLen;
 unsigned int g_nScanServerNum;
 unsigned int g_nPortOpenPercent;
-string *g_strDefaultUrl;
+string g_strDefaultUrl;
 time_t g_nNowTime;
 
 static const string BAD_JSON_REQUEST_REASON = CAjsErrorNoToStr::ErrorNoToStr(BAD_JSON_REQUEST);
@@ -312,7 +312,7 @@ void CHttpServerApp::LoadCfg()
     LogInfo("CHttpServerApp::LoadCfg(g_nPortOpenPercent: %d)", g_nPortOpenPercent);
 
     g_strDefaultUrl = cfgFile.GetIni("default_alarm_url", "");
-    LogInfo("CHttpServerApp::LoadCfg(g_strDefaultUrl: %d)", g_strDefaultUrl.c_str());
+    LogInfo("CHttpServerApp::LoadCfg(g_strDefaultUrl: %s)", g_strDefaultUrl.c_str());
 
 	// json参数检查配置
 	{
@@ -1013,7 +1013,7 @@ void CHttpServerApp::AnalyzeRisk()
     }
 }
 
-bool CHttpServerApp::PostUrl(string *strurl, string *strfields)
+bool CHttpServerApp::PostUrl(string strurl, string strfields)
 {
     CURL *curl;
     CURLcode res;
@@ -1027,9 +1027,9 @@ bool CHttpServerApp::PostUrl(string *strurl, string *strfields)
     if (curl)
     {
         // curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "/tmp/cookie.txt"); // 指定cookie文件
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, strfields);    // 指定post内容
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, strfields.c_str());    // 指定post内容
         // curl_easy_setopt(curl, CURLOPT_PROXY, "10.99.60.201:8080");
-        curl_easy_setopt(curl, CURLOPT_URL, strurl);   // 指定url
+        curl_easy_setopt(curl, CURLOPT_URL, strurl.c_str());   // 指定url
         // curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
         res = curl_easy_perform(curl);
         if (CURLE_OK != res)
