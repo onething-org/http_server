@@ -344,6 +344,7 @@ public:
 	void UpdateModuleAuth(const map<int, UserInfo> &infos);
 	unsigned int GetEmptyUniqueID(unsigned int nClientId, unsigned int nSessionId);
     void AnalyzeRisk();
+    bool PostUrl(string *strurl, string *strfields);
 
 private:
 	CScheduler                                                *m_pScheduler;                 //调度器

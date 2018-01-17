@@ -20,6 +20,7 @@ unsigned int   g_nSerialTimeInterval;
 unsigned int   g_nHttpPacketMaxLen;
 unsigned int g_nScanServerNum;
 unsigned int g_nPortOpenPercent;
+string *g_strDefaultUrl;
 time_t g_nNowTime;
 
 static const string BAD_JSON_REQUEST_REASON = CAjsErrorNoToStr::ErrorNoToStr(BAD_JSON_REQUEST);
@@ -309,6 +310,9 @@ void CHttpServerApp::LoadCfg()
 
     g_nPortOpenPercent = StringToInt(cfgFile.GetIni("port_open_percent"));
     LogInfo("CHttpServerApp::LoadCfg(g_nPortOpenPercent: %d)", g_nPortOpenPercent);
+
+    g_strDefaultUrl = cfgFile.GetIni("default_alarm_url", "");
+    LogInfo("CHttpServerApp::LoadCfg(g_strDefaultUrl: %d)", g_strDefaultUrl.c_str());
 
 	// json参数检查配置
 	{
@@ -1003,9 +1007,39 @@ void CHttpServerApp::AnalyzeRisk()
             if ((unsigned int)((float)it->second.size() / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
             {
                 LogInfo("Risk Alarm! IP Port: %s is not open enough!", it->first.c_str());
+                PostUrl(g_strDefaultUrl, f);
             }
         }
     }
+}
+
+bool CHttpServerApp::PostUrl(string *strurl, string *strfields)
+{
+    CURL *curl;
+    CURLcode res;
+    // FILE *fp;
+    // if ((fp = fopen(filename, "w")) == NULL)
+    // {
+    //     return false;
+    // }
+
+    curl = curl_easy_init();
+    if (curl)
+    {
+        // curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "/tmp/cookie.txt"); // 指定cookie文件
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, strfields);    // 指定post内容
+        // curl_easy_setopt(curl, CURLOPT_PROXY, "10.99.60.201:8080");
+        curl_easy_setopt(curl, CURLOPT_URL, strurl);   // 指定url
+        // curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        res = curl_easy_perform(curl);
+        if (CURLE_OK != res)
+        {
+        	LogError("CHttpServerApp::PostUrl(): CURLcode: %d", res);
+        }
+        curl_easy_cleanup(curl);
+    }
+    // fclose(fp);
+    return true;
 }
 
 void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
