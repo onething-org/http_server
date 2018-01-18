@@ -21,6 +21,9 @@ unsigned int   g_nHttpPacketMaxLen;
 unsigned int g_nScanServerNum;
 unsigned int g_nPortOpenPercent;
 string g_strDefaultUrl;
+string g_strAlarmMsg;
+int g_nAlarmId;
+
 time_t g_nNowTime;
 
 static const string BAD_JSON_REQUEST_REASON = CAjsErrorNoToStr::ErrorNoToStr(BAD_JSON_REQUEST);
@@ -131,7 +134,8 @@ void CHttpServerApp::LoadCfg()
 
 	//读取
 	CIniFile cfgFile;
-	if (cfgFile.Load(szFile) != 0){
+	if (cfgFile.Load(szFile) != 0)
+	{
 		LogError("CHttpServerApp::LoadCfg(config file load error)");
 		exit(EXIT_FAILURE);
 	}
@@ -139,11 +143,11 @@ void CHttpServerApp::LoadCfg()
 	LogFile(cfgFile.GetIni("log_file"));
 	unsigned int log_file_max_num = StringToInt(cfgFile.GetIni("log_file_max_num"));
 	int log_file_max_size = StringToInt(cfgFile.GetIni("log_file_max_size"));
-//	SetLogInfo(StringToInt(cfgFile.GetIni("log_file_max_num")), StringToInt(cfgFile.GetIni("log_file_max_size")));
+	//SetLogInfo(StringToInt(cfgFile.GetIni("log_file_max_num")), StringToInt(cfgFile.GetIni("log_file_max_size")));
 	SetLogInfo(log_file_max_num, log_file_max_size);
-	LogInfo("CHttpServerApp::LoadCfg(log_file_max_num :%u, log_file_max_size :%d)", log_file_max_num, log_file_max_size);
+	LogInfo("CHttpServerApp::LoadCfg(log_file_max_num: %u, log_file_max_size: %d)", log_file_max_num, log_file_max_size);
 	LogLevel(StringToLogLevel(cfgFile.GetIni("log_level")));
-	LogInfo("CHttpServerApp::LoadCfg(log_file :%s)", cfgFile.GetIni("log_file").c_str());
+	LogInfo("CHttpServerApp::LoadCfg(log_file: %s)", cfgFile.GetIni("log_file").c_str());
 
 	//get db infos
 	string strDb = cfgFile.GetIni("user_info_db", "ajs");
@@ -170,10 +174,9 @@ void CHttpServerApp::LoadCfg()
 	if (EthnetGetIpAddress(strIp, strSerialIp) == 0 && !strIp.empty())
 		strSerialIp = strIp;
 	EthnetInfoDestroy();
-	if (IpStringToInt(g_nSerialServerIp, strSerialIp) != 0) {
-		LogWarning(
-				"CHttpServerApp::LoadCfg(serial_server_ip in config file is error, serial_server_ip: %s)",
-				strSerialIp.c_str());
+	if (IpStringToInt(g_nSerialServerIp, strSerialIp) != 0)
+	{
+		LogWarning("CHttpServerApp::LoadCfg(serial_server_ip in config file is error, serial_server_ip: %s)", strSerialIp.c_str());
 		//exit(0);
 	}
 	//g_nSerialServerIp = IpStringToInt(cfgFile.GetIni("serial_server_ip"));
@@ -182,7 +185,7 @@ void CHttpServerApp::LoadCfg()
 	//客户端valid ip
 	{
 		string valid_ips = cfgFile.GetIni("valid_ip_info", "");
-		LogInfo("CHttpServerApp::LoadCfg(valid_ip_info :%s)", valid_ips.c_str());
+		LogInfo("CHttpServerApp::LoadCfg(valid_ip_info: %s)", valid_ips.c_str());
 
 		vector<string> v_ip_vct;
 		SplitDataToVector(v_ip_vct, valid_ips, "|");
@@ -201,7 +204,7 @@ void CHttpServerApp::LoadCfg()
 	//job servers' infomations
 	{
 		string valid_ips = cfgFile.GetIni("js_server_info", "");
-		LogInfo("CHttpServerApp::LoadCfg(js_server_info :%s)", valid_ips.c_str());
+		LogInfo("CHttpServerApp::LoadCfg(js_server_info: %s)", valid_ips.c_str());
 
 		vector<string> v_ip_vct;
 		SplitDataToVector(v_ip_vct, valid_ips, "|");
@@ -240,28 +243,27 @@ void CHttpServerApp::LoadCfg()
 					for (size_t j = 0; j != v_client_modules.size(); j++) {
 						int client_module = StringToInt(Trim(v_client_modules[j]));
 						m_clientModuleSpecializedJobServer[client_module] = jobServerId;
-						LogInfo("CHttpServerApp::LoadCfg( job_server id: %s, ip: %s, port: %s, client_module: %d)",
+						LogInfo("CHttpServerApp::LoadCfg(job_server id: %s, ip: %s, port: %s, client_module: %d)",
 								info_v[0].c_str(), info_v[1].c_str(), info_v[2].c_str(), client_module);
 					}
 					continue;
 				} else if (info_v.size() == 3){
 					//参加调度的jobserver
 					m_schedulerJobServer_set.insert(jobServerId);
-					LogInfo("CHttpServerApp::LoadCfg( job_server id: %s, ip: %s, port: %s)",
+					LogInfo("CHttpServerApp::LoadCfg(job_server id: %s, ip: %s, port: %s)",
 							info_v[0].c_str(), info_v[1].c_str(), info_v[2].c_str());
 				}
 
 			}
 			else
-				LogError("CHttpServerApp::LoadCfg(invalid conf job server ip : %s)", v_ip_vct[i].c_str());
+				LogError("CHttpServerApp::LoadCfg(invalid conf job server ip: %s)", v_ip_vct[i].c_str());
 		}
-
 	}
 
 	// risky ports
 	{
 		string risky_ports = cfgFile.GetIni("risky_ports", "");
-		LogInfo("CHttpServerApp::LoadCfg(risky_ports :%s)", risky_ports.c_str());
+		LogInfo("CHttpServerApp::LoadCfg(risky_ports: %s)", risky_ports.c_str());
 
 		vector<string> v_ports_s;
 		SplitDataToVector(v_ports_s, risky_ports, "|");
@@ -277,7 +279,7 @@ void CHttpServerApp::LoadCfg()
 	// risky services
 	{
 		string risky_services = cfgFile.GetIni("risky_services", "");
-		LogInfo("CHttpServerApp::LoadCfg(risky_services :%s)", risky_services.c_str());
+		LogInfo("CHttpServerApp::LoadCfg(risky_services: %s)", risky_services.c_str());
 
 		vector<string> v_services_s;
 		SplitDataToVector(v_services_s, risky_services, "|");
@@ -292,7 +294,7 @@ void CHttpServerApp::LoadCfg()
     // white list
     {
         string white_list = cfgFile.GetIni("white_list", "");
-        LogInfo("CHttpServerApp::LoadCfg(white_list :%s)", white_list.c_str());
+        LogInfo("CHttpServerApp::LoadCfg(white_list: %s)", white_list.c_str());
 
         vector<string> v_list_s;
         SplitDataToVector(v_list_s, white_list, "|");
@@ -313,6 +315,12 @@ void CHttpServerApp::LoadCfg()
 
     g_strDefaultUrl = cfgFile.GetIni("default_alarm_url", "");
     LogInfo("CHttpServerApp::LoadCfg(g_strDefaultUrl: %s)", g_strDefaultUrl.c_str());
+
+    g_strAlarmMsg = cfgFile.GetIni("white_alarm_msg", "");
+    LogInfo("CHttpServerApp::LoadCfg(g_strAlarmMsg: %s)", g_strAlarmMsg.c_str());
+
+    g_nAlarmId = StringToInt(cfgFile.GetIni("white_alarm_id"));
+    LogInfo("CHttpServerApp::LoadCfg(g_nAlarmId: %d)", g_nAlarmId;
 
 	// json参数检查配置
 	{
@@ -369,7 +377,6 @@ void CHttpServerApp::LoadCfg()
 
 	g_nClearAsyncTimeInterval = StringToInt(cfgFile.GetIni("clear_async_job_time_interval", "600"));
 	LogInfo("CHttpServerApp::LoadCfg(clear_async_job_time_interval: %d)", g_nClearAsyncTimeInterval);
-
 }
 
 void CHttpServerApp::OnExpire(unsigned int nUniqueId)
@@ -1009,9 +1016,9 @@ void CHttpServerApp::AnalyzeRisk()
                 LogInfo("Risk Alarm! IP Port: %s is not open enough!", it->first.c_str());
                 Json::Value fields;
                 fields["object"] = it->first;
-                fields["content"] = "open not enough!";
+                fields["content"] = g_strAlarmMsg;
                 fields["host"] = it->first;
-                fields["id"] = 80;      // 白名单端口不通
+                fields["id"] = g_nAlarmId;      // 白名单端口不通告警ID
                 Json::StyledWriter writer;
                 string s_fields = writer.write(fields);
                 PostUrl(g_strDefaultUrl, s_fields);
@@ -1020,33 +1027,26 @@ void CHttpServerApp::AnalyzeRisk()
     }
 }
 
-bool CHttpServerApp::PostUrl(string strurl, string strfields)
+void CHttpServerApp::PostUrl(string strurl, string strfields)
 {
     CURL *curl;
     CURLcode res;
-    // FILE *fp;
-    // if ((fp = fopen(filename, "w")) == NULL)
-    // {
-    //     return false;
-    // }
 
     curl = curl_easy_init();
     if (curl)
     {
-        // curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "/tmp/cookie.txt"); // 指定cookie文件
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, strfields.c_str());    // 指定post内容
-        // curl_easy_setopt(curl, CURLOPT_PROXY, "10.99.60.201:8080");
-        curl_easy_setopt(curl, CURLOPT_URL, strurl.c_str());   // 指定url
-        // curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        curl_slist *plist = curl_slist_append(NULL, "Content-Type:application/json;charset=UTF-8");		// 指定发送内容的格式为JSON
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, plist);
+        curl_easy_setopt(curl, CURLOPT_URL, strurl.c_str());				// 指定url
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, strfields.c_str());		// 指定post内容
+
         res = curl_easy_perform(curl);
         if (CURLE_OK != res)
         {
-        	LogError("CHttpServerApp::PostUrl(): CURLcode: %d", res);
+            LogError("CHttpServerApp::PostUrl(): CURLcode: %d", res);
         }
         curl_easy_cleanup(curl);
     }
-    // fclose(fp);
-    return true;
 }
 
 void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
