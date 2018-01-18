@@ -377,6 +377,13 @@ void CHttpServerApp::LoadCfg()
 
 	g_nClearAsyncTimeInterval = StringToInt(cfgFile.GetIni("clear_async_job_time_interval", "600"));
 	LogInfo("CHttpServerApp::LoadCfg(clear_async_job_time_interval: %d)", g_nClearAsyncTimeInterval);
+
+	// 初始化 m_IpPort_Host_map
+	for (int i = 10001; i < 10101; ++i)
+	{
+		string tmp = IntToString(i);
+		m_IpPort_Host_map[tmp].insert("tmc01001");
+	}
 }
 
 void CHttpServerApp::OnExpire(unsigned int nUniqueId)
@@ -1024,6 +1031,8 @@ void CHttpServerApp::AnalyzeRisk()
                 PostUrl(g_strDefaultUrl, s_fields);
             }
         }
+
+        m_IpPort_Host_map.clear();
     }
 }
 
@@ -1031,6 +1040,8 @@ void CHttpServerApp::PostUrl(string strurl, string strfields)
 {
     CURL *curl;
     CURLcode res;
+
+    curl_global_init(CURL_GLOBAL_ALL);
 
     curl = curl_easy_init();
     if (curl)
