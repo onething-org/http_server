@@ -1070,7 +1070,7 @@ void CHttpServerApp::PostUrl(string strurl, string strfields)
     }
 }
 
-void CHttpServerApp::CurlMInit(CURLM *cm)
+void CHttpServerApp::CurlMInit(CURLM *cm, string str)
 {
     CURL *eh = curl_easy_init();
     // curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, cb);
@@ -1079,6 +1079,7 @@ void CHttpServerApp::CurlMInit(CURLM *cm)
     curl_easy_setopt(eh, CURLOPT_HTTPHEADER, plist);
     curl_easy_setopt(eh, CURLOPT_URL, g_strDefaultUrl.c_str());
     curl_easy_setopt(eh, CURLOPT_PRIVATE, g_strDefaultUrl.c_str());
+    curl_easy_setopt(eh, CURLOPT_POSTFIELDS, str.c_str());
     curl_easy_setopt(eh, CURLOPT_VERBOSE, 0L);
     curl_multi_add_handle(cm, eh);
 }
@@ -1099,7 +1100,7 @@ void CHttpServerApp::CurlMPrepare(CURLM *cm)
             Json::FastWriter writer;
             string s_fields = writer.write(fields);
                 
-            CurlMInit(cm);
+            CurlMInit(cm, s_fields);
         }
     }
 }

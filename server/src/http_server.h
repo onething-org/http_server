@@ -346,7 +346,7 @@ public:
 	unsigned int GetEmptyUniqueID(unsigned int nClientId, unsigned int nSessionId);
     void AnalyzeRisk();
     void PostUrl(string strurl, string strfields);
-    void CurlMInit(CURLM *cm);
+    void CurlMInit(CURLM *cm, string str);
     void CurlMPrepare(CURLM *cm);
     void CurlMPerform();
 
