@@ -320,7 +320,7 @@ void CHttpServerApp::LoadCfg()
     LogInfo("CHttpServerApp::LoadCfg(g_strAlarmMsg: %s)", g_strAlarmMsg.c_str());
 
     g_nAlarmId = StringToInt(cfgFile.GetIni("white_alarm_id"));
-    LogInfo("CHttpServerApp::LoadCfg(g_nAlarmId: %d)", g_nAlarmId;
+    LogInfo("CHttpServerApp::LoadCfg(g_nAlarmId: %d)", g_nAlarmId);
 
 	// json参数检查配置
 	{
@@ -1019,7 +1019,7 @@ void CHttpServerApp::AnalyzeRisk()
                 fields["content"] = g_strAlarmMsg;
                 fields["host"] = it->first;
                 fields["id"] = g_nAlarmId;      // 白名单端口不通告警ID
-                Json::StyledWriter writer;
+                Json::FastWriter writer;
                 string s_fields = writer.write(fields);
                 PostUrl(g_strDefaultUrl, s_fields);
             }
