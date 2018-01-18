@@ -1012,6 +1012,7 @@ void CHttpServerApp::AnalyzeRisk()
     }
     */
 
+    /*
     LogInfo("Size of m_IpPort_Host_map: %d", m_IpPort_Host_map.size());
     if (!m_IpPort_Host_map.empty())
     {
@@ -1032,6 +1033,15 @@ void CHttpServerApp::AnalyzeRisk()
             }
         }
 
+        m_IpPort_Host_map.clear();
+    }
+    */
+
+    // curl multi
+    if (!m_IpPort_Host_map.empty())
+    {
+    	LogInfo("Size of m_IpPort_Host_map: %d", m_IpPort_Host_map.size());
+    	CurlMPerform();
         m_IpPort_Host_map.clear();
     }
 }
@@ -1058,6 +1068,111 @@ void CHttpServerApp::PostUrl(string strurl, string strfields)
         }
         curl_easy_cleanup(curl);
     }
+}
+
+void CHttpServerApp::CurlMInit(CURLM *cm)
+{
+    CURL *eh = curl_easy_init();
+    // curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, cb);
+    curl_easy_setopt(eh, CURLOPT_HEADER, 0L);
+    curl_slist *plist = curl_slist_append(NULL, "Content-Type:application/json;charset=UTF-8");		// 指定发送内容的格式为JSON
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, plist);
+    curl_easy_setopt(eh, CURLOPT_URL, strurl.c_str());
+    curl_easy_setopt(eh, CURLOPT_PRIVATE, strurl.c_str());
+    curl_easy_setopt(eh, CURLOPT_VERBOSE, 0L);
+    curl_multi_add_handle(cm, eh);
+}
+
+void CHttpServerApp::CurlMPrepare(CURLM *cm)
+{
+    for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
+    {
+        LogInfo("m_IpPort_Host_map: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
+        if ((unsigned int)((float)it->second.size() / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
+        {
+            LogInfo("Risk Alarm! IP Port: %s is not open enough!", it->first.c_str());
+            Json::Value fields;
+            fields["object"] = it->first;
+            fields["content"] = g_strAlarmMsg;
+            fields["host"] = it->first;
+            fields["id"] = g_nAlarmId;      // 白名单端口不通告警ID
+            Json::FastWriter writer;
+            string s_fields = writer.write(fields);
+                
+            CurlMInit(cm);
+        }
+    }
+}
+
+void CHttpServerApp::CurlMPerform()
+{
+    CURLM *cm = NULL;
+    CURL *eh = NULL;
+    CURLMsg *msg = NULL;
+    CURLcode return_code = 0;
+    int still_running = 0, i = 0, msgs_left = 0;
+    int http_status_code;
+    const char *szUrl;
+
+    curl_global_init(CURL_GLOBAL_ALL);
+
+    cm = curl_multi_init();
+
+    CurlMPrepare(cm);
+
+    curl_multi_perform(cm, &still_running);
+
+    do {
+        int numfds = 0;
+        int res = curl_multi_wait(cm, NULL, 0, MAX_WAIT_MSECS, &numfds);
+        if (res != CURLM_OK)
+        {
+            LogError("CHttpServerApp::CurlMPerform() curl_multi_wait() returned: %d", res);
+            return;
+        }
+        /*
+        if (!numfds) {
+           LogError("CHttpServerApp::CurlMPerform() curl_multi_wait() numfds = %d", numfds);
+           return;
+        }
+        */
+        curl_multi_perform(cm, &still_running);
+
+    } while (still_running);
+
+    while ((msg = curl_multi_info_read(cm, &msgs_left)))
+    {
+        if (msg->msg == CURLMSG_DONE) {
+            eh = msg->easy_handle;
+
+            return_code = msg->data.result;
+            if(return_code!=CURLE_OK) {
+                LogError("CHttpServerApp::CurlMPerform() CURL error code: %d\n", msg->data.result);
+                continue;
+            }
+
+            // Get HTTP status code
+            http_status_code=0;
+            szUrl = NULL;
+
+            curl_easy_getinfo(eh, CURLINFO_RESPONSE_CODE, &http_status_code);
+            curl_easy_getinfo(eh, CURLINFO_PRIVATE, &szUrl);
+
+            if (http_status_code == 200)
+            {
+                LogInfo("CHttpServerApp::CurlMPerform() 200 OK for %s", szUrl);
+            } else {
+                LogError("CHttpServerApp::CurlMPerform() GET of %s returned http status code %d", szUrl, http_status_code);
+            }
+
+            curl_multi_remove_handle(cm, eh);
+            curl_easy_cleanup(eh);
+        } else {
+            LogError("CHttpServerApp::CurlMPerform() after curl_multi_info_read(), CURLMsg = %d", msg->msg);
+        }
+    }
+
+    curl_multi_cleanup(cm);
 }
 
 void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)

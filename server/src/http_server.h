@@ -15,7 +15,8 @@
 #include <set>
 #include <utility>
 
-static unsigned int   g_nCreateSyncReTryCount = 0;
+#define MAX_WAIT_MSECS 30*1000  /* Wait max. 30 seconds */
+static unsigned int g_nCreateSyncReTryCount = 0;
 
 using namespace std;
 using namespace tfc::net;
@@ -345,6 +346,9 @@ public:
 	unsigned int GetEmptyUniqueID(unsigned int nClientId, unsigned int nSessionId);
     void AnalyzeRisk();
     void PostUrl(string strurl, string strfields);
+    void CurlMInit(CURLM *cm);
+    void CurlMPrepare(CURLM *cm);
+    void CurlMPerform();
 
 private:
 	CScheduler                                                *m_pScheduler;                 //调度器
