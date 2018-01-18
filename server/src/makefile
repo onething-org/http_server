@@ -15,7 +15,7 @@ ASN = $(STORAGE)ajs/asn/
 MTNC_LIB = /usr/local/monitor_dev/public_lib/agent_mtnc/mtnc_lib/
 
 INC += -I$(ASN)src/ -I$(SNACC) -I$(SNACC)c++-lib/inc/ -I$(HTTP_SERVER_INC) -I$(MTNC_LIB)include/ -I/usr/local/include/mysql -I/usr/local/include/
-INC += -I/usr/include/mysql -I/usr/local/mysqlpp/include/ -I/usr/include/jsoncpp -I/usr/local/curl64/include
+INC += -I/usr/include/mysql -I/usr/local/mysqlpp/include/ -I/usr/include/jsoncpp -I/usr/local/curl/include
 
 LIB = -ldl -lz -lrt /usr/local/curl/lib/libcurl.a $(ASN)lib64/libajs_asn.a $(SNACC)c++-lib/lib64/libasn1c++.a -lpthread $(MTNC_LIB)lib64/libmtnc_lib.a -ljson_linux-gcc-4.4.7_libmt
 LIB += -L/usr/local/mysqlpp/lib/ -L/usr/lib64/mysql/ -lmysqlpp -lmysqlclient -lidn -lrt

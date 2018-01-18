@@ -1076,9 +1076,9 @@ void CHttpServerApp::CurlMInit(CURLM *cm)
     // curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, cb);
     curl_easy_setopt(eh, CURLOPT_HEADER, 0L);
     curl_slist *plist = curl_slist_append(NULL, "Content-Type:application/json;charset=UTF-8");		// 指定发送内容的格式为JSON
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, plist);
-    curl_easy_setopt(eh, CURLOPT_URL, strurl.c_str());
-    curl_easy_setopt(eh, CURLOPT_PRIVATE, strurl.c_str());
+    curl_easy_setopt(eh, CURLOPT_HTTPHEADER, plist);
+    curl_easy_setopt(eh, CURLOPT_URL, g_strDefaultUrl.c_str());
+    curl_easy_setopt(eh, CURLOPT_PRIVATE, g_strDefaultUrl.c_str());
     curl_easy_setopt(eh, CURLOPT_VERBOSE, 0L);
     curl_multi_add_handle(cm, eh);
 }
@@ -1109,8 +1109,8 @@ void CHttpServerApp::CurlMPerform()
     CURLM *cm = NULL;
     CURL *eh = NULL;
     CURLMsg *msg = NULL;
-    CURLcode return_code = 0;
-    int still_running = 0, i = 0, msgs_left = 0;
+    CURLcode return_code = CURLE_OK;
+    int still_running = 0, msgs_left = 0;
     int http_status_code;
     const char *szUrl;
 
