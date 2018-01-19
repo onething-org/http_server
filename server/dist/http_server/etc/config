@@ -51,6 +51,6 @@ risky_services = ssh|redis
 white_list = 8080
 scan_server_num = 50
 port_open_percent = 60
-default_alarm_url = http://alarmweb.xunleioa.com:/api/alarm/single
+default_alarm_url = http://alarmweb.xunleioa.com/api/alarm/single
 white_alarm_msg = Port open not enough!
 white_alarm_id = 80
