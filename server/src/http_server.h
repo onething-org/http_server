@@ -349,6 +349,8 @@ public:
     void CurlMInit(CURLM *cm, string str);
     void CurlMPrepare(CURLM *cm);
     void CurlMPerform();
+    void SendDataToRMQ();
+    void SendDataToRMQ(amqp_connection_state_t conn, string &data);
 
 private:
 	CScheduler                                                *m_pScheduler;                 //调度器

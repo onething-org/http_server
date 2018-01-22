@@ -22,6 +22,7 @@ unsigned int g_nScanServerNum;
 unsigned int g_nPortOpenPercent;
 string g_strDefaultUrl;
 string g_strAlarmMsg;
+unsigned int g_nCountToSend;
 int g_nAlarmId;
 
 time_t g_nNowTime;
@@ -321,6 +322,9 @@ void CHttpServerApp::LoadCfg()
 
     g_nAlarmId = StringToInt(cfgFile.GetIni("white_alarm_id"));
     LogInfo("CHttpServerApp::LoadCfg(g_nAlarmId: %d)", g_nAlarmId);
+
+    g_nCountToSend = StringToInt(cfgFile.GetIni("count_to_send"));
+    LogInfo("CHttpServerApp::LoadCfg(g_nCountToSend: %d)", g_nCountToSend);
 
 	// json参数检查配置
 	{
@@ -1174,6 +1178,105 @@ void CHttpServerApp::CurlMPerform()
     }
 
     curl_multi_cleanup(cm);
+}
+
+void CHttpServerApp::SendDataToRMQ()
+{
+	// AutoStatistic tmp(__FUNCTION__);
+
+	if(m_IpPort_Host_map.empty())
+	{
+		return;
+	}
+
+	int status;
+	amqp_socket_t *socket = NULL;
+	amqp_connection_state_t conn;
+
+	conn = amqp_new_connection();
+	socket = amqp_tcp_socket_new(conn);
+	if (!socket) {
+		DEBUG_P(LOG_NORMAL, "error occur amqp creating TCP socket\n");
+	}
+
+	DEBUG_P(LOG_NORMAL, "Log to remove %s|%d|%s, host and port: %s | %d\n", __FILE__, __LINE__, __FUNCTION__, _proc->_cfg->m_rmqhost.c_str(), _proc->_cfg->m_rmqport);
+	status = amqp_socket_open(socket, _proc->_cfg->m_rmqhost.c_str(), _proc->_cfg->m_rmqport);
+	if (status) {
+		DEBUG_P(LOG_NORMAL, "error occur amqp opening TCP socket\n");
+	}
+
+	DEBUG_P(LOG_NORMAL, "Log to remove %s|%d|%s, user and password: %s | %d\n", __FILE__, __LINE__, __FUNCTION__, _proc->_cfg->m_rmquser.c_str(), _proc->_cfg->m_rmqpwd.c_str());
+	die_on_amqp_error(amqp_login(conn, _proc->_cfg->m_vhost.c_str(), AMQP_DEFAULT_MAX_CHANNELS, AMQP_DEFAULT_FRAME_SIZE, 0, AMQP_SASL_METHOD_PLAIN, _proc->_cfg->m_rmquser.c_str(), _proc->_cfg->m_rmqpwd.c_str()), "Logging in");
+	amqp_channel_open(conn, 1);
+	die_on_amqp_error(amqp_get_rpc_reply(conn), "Opening channel");
+
+//	amqp_confirm_select(conn, 1);	/* turn publish confirm on */
+
+	string data2send = "";
+	unsigned int cnt = 0;
+	for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
+	{
+		LogInfo("m_IpPort_Host_map: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
+        if ((unsigned int)((float)it->second.size() / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
+        {
+        	cnt++;
+            LogInfo("Risk Alarm! IP Port: %s is not open enough!", it->first.c_str());
+
+            if ("" != data2send)
+            {
+            	data2send += "\n";
+            }
+            data2send += it->first;
+
+            if (cnt % g_nCountToSend == 0)
+            {
+            	SendDataToRMQ(conn, data2send);
+            	data2send = "";
+            }
+            SendDataToRMQ(conn, data2send);
+            data2send = "";
+
+            m_IpPort_Host_map.clear();
+        }
+	}
+
+	die_on_amqp_error(amqp_channel_close(conn, 1, AMQP_REPLY_SUCCESS), "Closing channel");
+	die_on_amqp_error(amqp_connection_close(conn, AMQP_REPLY_SUCCESS), "Closing connection");
+	die_on_error(amqp_destroy_connection(conn), "Ending connection");
+}
+
+void McdLogic::SendDataToRMQ(amqp_connection_state_t conn, string &data)
+{
+	AutoStatistic tmp(__FUNCTION__);
+
+	if("" == data)
+	{
+		return;
+	}
+
+	char const *messagebody;
+	messagebody = data.c_str();
+
+	{
+		amqp_basic_properties_t props;
+		props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
+		props.content_type = amqp_cstring_bytes("text/plain");
+		props.delivery_mode = _proc->_cfg->m_delivery_mode;	// persistent delivery mode
+
+    	die_on_error(amqp_basic_publish(conn,
+                                    	1,
+                                    	amqp_cstring_bytes(_proc->_cfg->m_exchange.c_str()),
+                                    	amqp_cstring_bytes(_proc->_cfg->m_routingkey.c_str()),
+                                    	0,
+                                    	0,
+                                    	&props,
+                                    	amqp_cstring_bytes(messagebody)),
+                	"Publishing");
+	}
+
+	// die_on_amqp_error(amqp_channel_close(conn, 1, AMQP_REPLY_SUCCESS), "Closing channel");
+	// die_on_amqp_error(amqp_connection_close(conn, AMQP_REPLY_SUCCESS), "Closing connection");
+	// die_on_error(amqp_destroy_connection(conn), "Ending connection");
 }
 
 void CHttpServerApp::HandleJsonRequest(Json::Value &request, unsigned int nFlow)
