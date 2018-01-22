@@ -15,6 +15,10 @@
 #include <set>
 #include <utility>
 
+#include <amqp.h>
+#include <amqp_framing.h>
+#include <amqp_tcp_socket.h>
+
 #define MAX_WAIT_MSECS 30*1000  /* Wait max. 30 seconds */
 static unsigned int g_nCreateSyncReTryCount = 0;
 
@@ -349,6 +353,9 @@ public:
     void CurlMInit(CURLM *cm, string str);
     void CurlMPrepare(CURLM *cm);
     void CurlMPerform();
+    
+    void die_on_error(int x, char const *context);
+    void die_on_amqp_error(amqp_rpc_reply_t x, char const *context);
     void SendDataToRMQ();
     void SendDataToRMQ(amqp_connection_state_t conn, string &data);
 
