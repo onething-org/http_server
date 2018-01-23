@@ -923,7 +923,7 @@ void CHttpServerApp::ChildAction()
 void CHttpServerApp::die_on_error(int x, char const *context)
 {
     if (x < 0) {
-        LogError("%s: %s\n", context, amqp_error_string2(x));
+        LogError("%s: %s", context, amqp_error_string2(x));
         return;
     }
 }
@@ -935,18 +935,18 @@ void CHttpServerApp::die_on_amqp_error(amqp_rpc_reply_t x, char const *context)
         return;
   
     case AMQP_RESPONSE_NONE:
-    	LogError("%s: missing RPC reply type!\n", context);
+    	LogError("%s: missing RPC reply type!", context);
         break;
   
     case AMQP_RESPONSE_LIBRARY_EXCEPTION:
-        LogError("%s: %s\n", context, amqp_error_string2(x.library_error));
+        LogError("%s: %s", context, amqp_error_string2(x.library_error));
         break;
   
     case AMQP_RESPONSE_SERVER_EXCEPTION:
         switch (x.reply.id) {
         case AMQP_CONNECTION_CLOSE_METHOD: {
             amqp_connection_close_t *m = (amqp_connection_close_t *) x.reply.decoded;
-            LogError("%s: server connection error %uh, message: %.*s\n",
+            LogError("%s: server connection error %uh, message: %.*s",
                     context,
                     m->reply_code,
                     (int) m->reply_text.len, (char *) m->reply_text.bytes);
@@ -954,14 +954,14 @@ void CHttpServerApp::die_on_amqp_error(amqp_rpc_reply_t x, char const *context)
         }
         case AMQP_CHANNEL_CLOSE_METHOD: {
             amqp_channel_close_t *m = (amqp_channel_close_t *) x.reply.decoded;
-            LogError("%s: server channel error %uh, message: %.*s\n",
+            LogError("%s: server channel error %uh, message: %.*s",
                     context,
                     m->reply_code,
                     (int) m->reply_text.len, (char *) m->reply_text.bytes);
             break;
         }
         default:
-            LogError("%s: unknown server error, method id 0x%08X\n", context, x.reply.id);
+            LogError("%s: unknown server error, method id 0x%08X", context, x.reply.id);
             break;
         }
         break;
@@ -1246,16 +1246,16 @@ void CHttpServerApp::SendDataToRMQ()
 	conn = amqp_new_connection();
 	socket = amqp_tcp_socket_new(conn);
 	if (!socket) {
-		DEBUG_P(LOG_NORMAL, "error occur amqp creating TCP socket\n");
+		LogError("error occur amqp creating TCP socket");
 	}
 
-	DEBUG_P(LOG_NORMAL, "Log to remove %s|%d|%s, host and port: %s | %d\n", __FILE__, __LINE__, __FUNCTION__, _proc->_cfg->m_rmqhost.c_str(), _proc->_cfg->m_rmqport);
+	LogError("Log to remove %s|%d|%s, host and port: %s | %d", __FILE__, __LINE__, __FUNCTION__, _proc->_cfg->m_rmqhost.c_str(), _proc->_cfg->m_rmqport);
 	status = amqp_socket_open(socket, _proc->_cfg->m_rmqhost.c_str(), _proc->_cfg->m_rmqport);
 	if (status) {
-		DEBUG_P(LOG_NORMAL, "error occur amqp opening TCP socket\n");
+		LogError("error occur amqp opening TCP socket");
 	}
 
-	DEBUG_P(LOG_NORMAL, "Log to remove %s|%d|%s, user and password: %s | %d\n", __FILE__, __LINE__, __FUNCTION__, _proc->_cfg->m_rmquser.c_str(), _proc->_cfg->m_rmqpwd.c_str());
+	LogError("Log to remove %s|%d|%s, user and password: %s | %d", __FILE__, __LINE__, __FUNCTION__, _proc->_cfg->m_rmquser.c_str(), _proc->_cfg->m_rmqpwd.c_str());
 	die_on_amqp_error(amqp_login(conn, _proc->_cfg->m_vhost.c_str(), AMQP_DEFAULT_MAX_CHANNELS, AMQP_DEFAULT_FRAME_SIZE, 0, AMQP_SASL_METHOD_PLAIN, _proc->_cfg->m_rmquser.c_str(), _proc->_cfg->m_rmqpwd.c_str()), "Logging in");
 	amqp_channel_open(conn, 1);
 	die_on_amqp_error(amqp_get_rpc_reply(conn), "Opening channel");
