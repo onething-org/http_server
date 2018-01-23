@@ -1266,8 +1266,6 @@ void CHttpServerApp::CurlMPerform()
 
 void CHttpServerApp::SendDataToRMQ()
 {
-	// AutoStatistic tmp(__FUNCTION__);
-
 	if(m_IpPort_Host_map.empty())
 	{
 		return;
@@ -1329,10 +1327,8 @@ void CHttpServerApp::SendDataToRMQ()
 	die_on_error(amqp_destroy_connection(conn), "Ending connection");
 }
 
-void McdLogic::SendDataToRMQ(amqp_connection_state_t conn, string &data)
+void CHttpServerApp::SendDataToRMQ(amqp_connection_state_t conn, string &data)
 {
-	AutoStatistic tmp(__FUNCTION__);
-
 	if("" == data)
 	{
 		return;
