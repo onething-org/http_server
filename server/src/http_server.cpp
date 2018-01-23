@@ -22,8 +22,18 @@ unsigned int g_nScanServerNum;
 unsigned int g_nPortOpenPercent;
 string g_strDefaultUrl;
 string g_strAlarmMsg;
-unsigned int g_nCountToSend;
 int g_nAlarmId;
+unsigned int g_nCountToSend;
+
+// RabbitMQ
+string m_rmqhost;
+int m_rmqport;
+string m_rmquser;
+string m_rmqpwd;
+string m_rmqvhost;
+string m_rmqexchange;
+string m_rmqroutingkey;
+int m_rmqdeliverymode;
 
 time_t g_nNowTime;
 
@@ -325,6 +335,30 @@ void CHttpServerApp::LoadCfg()
 
     g_nCountToSend = StringToInt(cfgFile.GetIni("count_to_send"));
     LogInfo("CHttpServerApp::LoadCfg(g_nCountToSend: %d)", g_nCountToSend);
+
+    m_rmqhost = cfgFile.GetIni("rmqhost", "");
+	LogInfo("CHttpServerApp::LoadCfg(m_rmqhost: %s)", m_rmqhost.c_str());
+
+	m_rmqport = StringToInt(cfgFile.GetIni("rmqport"));
+	LogInfo("CHttpServerApp::LoadCfg(m_rmqport: %d)", m_rmqport);
+
+	m_rmquser = cfgFile.GetIni("rmquser", "");
+	LogInfo("CHttpServerApp::LoadCfg(m_rmquser: %s)", m_rmquser.c_str());
+
+	m_rmqpwd = cfgFile.GetIni("rmqpwd", "");
+	LogInfo("CHttpServerApp::LoadCfg(m_rmqpwd: %s)", m_rmqpwd.c_str());
+
+	m_rmqvhost = cfgFile.GetIni("rmqvhost", "");
+	LogInfo("CHttpServerApp::LoadCfg(m_rmqvhost: %s)", m_rmqvhost.c_str());
+
+	m_rmqexchange = cfgFile.GetIni("rmqexchange", "");
+	LogInfo("CHttpServerApp::LoadCfg(m_rmqexchange: %s)", m_rmqexchange.c_str());
+
+	m_rmqroutingkey = cfgFile.GetIni("rmqroutingkey", "");
+	LogInfo("CHttpServerApp::LoadCfg(m_rmqroutingkey: %s)", m_rmqroutingkey.c_str());
+
+	m_rmqdeliverymode = StringToInt(cfgFile.GetIni("rmqdeliverymode"));
+	LogInfo("CHttpServerApp::LoadCfg(m_rmqdeliverymode: %d)", m_rmqdeliverymode);
 
 	// json参数检查配置
 	{

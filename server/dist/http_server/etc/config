@@ -55,3 +55,13 @@ default_alarm_url = http://alarmweb.xunleioa.com/api/alarm/single
 white_alarm_msg = Port open not enough!
 white_alarm_id = 80
 count_to_send = 100
+
+#RabbitMQ
+rmqhost=42.51.169.23
+rmqport=5672
+rmquser=admin
+rmqpwd=123456
+rmqvhost=common
+rmqexchange=alarm_configure_exchange
+rmqroutingkey=heyong
+rmqdeliverymode=2
