@@ -1283,14 +1283,14 @@ void CHttpServerApp::SendDataToRMQ()
 		LogError("error occur amqp creating TCP socket");
 	}
 
-	LogError("Log to remove %s|%d|%s, host and port: %s | %d", __FILE__, __LINE__, __FUNCTION__, _proc->_cfg->m_rmqhost.c_str(), _proc->_cfg->m_rmqport);
-	status = amqp_socket_open(socket, _proc->_cfg->m_rmqhost.c_str(), _proc->_cfg->m_rmqport);
+	LogError("Log to remove %s|%d|%s, host and port: %s | %d", __FILE__, __LINE__, __FUNCTION__, m_rmqhost.c_str(), m_rmqport);
+	status = amqp_socket_open(socket, m_rmqhost.c_str(), m_rmqport);
 	if (status) {
 		LogError("error occur amqp opening TCP socket");
 	}
 
-	LogError("Log to remove %s|%d|%s, user and password: %s | %d", __FILE__, __LINE__, __FUNCTION__, _proc->_cfg->m_rmquser.c_str(), _proc->_cfg->m_rmqpwd.c_str());
-	die_on_amqp_error(amqp_login(conn, _proc->_cfg->m_vhost.c_str(), AMQP_DEFAULT_MAX_CHANNELS, AMQP_DEFAULT_FRAME_SIZE, 0, AMQP_SASL_METHOD_PLAIN, _proc->_cfg->m_rmquser.c_str(), _proc->_cfg->m_rmqpwd.c_str()), "Logging in");
+	LogError("Log to remove %s|%d|%s, user and password: %s | %d", __FILE__, __LINE__, __FUNCTION__, m_rmquser.c_str(), m_rmqpwd.c_str());
+	die_on_amqp_error(amqp_login(conn, m_rmqvhost.c_str(), AMQP_DEFAULT_MAX_CHANNELS, AMQP_DEFAULT_FRAME_SIZE, 0, AMQP_SASL_METHOD_PLAIN, m_rmquser.c_str(), m_rmqpwd.c_str()), "Logging in");
 	amqp_channel_open(conn, 1);
 	die_on_amqp_error(amqp_get_rpc_reply(conn), "Opening channel");
 
@@ -1345,12 +1345,12 @@ void McdLogic::SendDataToRMQ(amqp_connection_state_t conn, string &data)
 		amqp_basic_properties_t props;
 		props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
 		props.content_type = amqp_cstring_bytes("text/plain");
-		props.delivery_mode = _proc->_cfg->m_delivery_mode;	// persistent delivery mode
+		props.delivery_mode = m_rmqdeliverymode;	// persistent delivery mode
 
     	die_on_error(amqp_basic_publish(conn,
                                     	1,
-                                    	amqp_cstring_bytes(_proc->_cfg->m_exchange.c_str()),
-                                    	amqp_cstring_bytes(_proc->_cfg->m_routingkey.c_str()),
+                                    	amqp_cstring_bytes(m_rmqexchange.c_str()),
+                                    	amqp_cstring_bytes(m_rmqroutingkey.c_str()),
                                     	0,
                                     	0,
                                     	&props,

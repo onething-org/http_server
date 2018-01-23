@@ -19,6 +19,7 @@ INC += -I/usr/include/mysql -I/usr/local/mysqlpp/include/ -I/usr/include/jsoncpp
 
 LIB = -ldl -lz -lrt /usr/local/curl/lib/libcurl.a $(ASN)lib64/libajs_asn.a $(SNACC)c++-lib/lib64/libasn1c++.a -lpthread $(MTNC_LIB)lib64/libmtnc_lib.a -ljson_linux-gcc-4.4.7_libmt
 LIB += -L/usr/local/mysqlpp/lib/ -L/usr/lib64/mysql/ -lmysqlpp -lmysqlclient -lidn -lrt
+LIB += -L/usr/local/monitor_dev/public_64/tools/rabbitmq-c/lib/ -lrabbitmq
 
 CPP_SOURCES = $(wildcard *.cpp)
 C_SOURCES = $(wildcard *.c)
