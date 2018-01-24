@@ -1128,8 +1128,8 @@ void CHttpServerApp::AnalyzeRisk()
     // curl multi
     if (!m_IpPort_Host_map.empty())
     {
-    	LogInfo("Size of m_IpPort_Host_map: %d", m_IpPort_Host_map.size());
-    	CurlMPerform();
+        LogInfo("Size of m_IpPort_Host_map: %d", m_IpPort_Host_map.size());
+        SendDataToRMQ();
         m_IpPort_Host_map.clear();
     }
 }
@@ -1294,33 +1294,31 @@ void CHttpServerApp::SendDataToRMQ()
 
 //	amqp_confirm_select(conn, 1);	/* turn publish confirm on */
 
-	string data2send = "";
-	unsigned int cnt = 0;
-	for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
-	{
-		LogInfo("m_IpPort_Host_map: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
+    string data2send = "";
+    unsigned int cnt = 0;
+    for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
+    {
+        LogInfo("m_IpPort_Host_map: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
         if ((unsigned int)((float)it->second.size() / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
         {
-        	cnt++;
+            cnt++;
             LogInfo("Risk Alarm! IP Port: %s is not open enough!", it->first.c_str());
 
             if ("" != data2send)
             {
-            	data2send += "\n";
+                data2send += "\n";
             }
             data2send += it->first;
 
             if (cnt % g_nCountToSend == 0)
             {
-            	SendDataToRMQ(conn, data2send);
-            	data2send = "";
+                SendDataToRMQ(conn, data2send);
+                data2send = "";
             }
-            SendDataToRMQ(conn, data2send);
-            data2send = "";
-
-            m_IpPort_Host_map.clear();
         }
-	}
+    }
+    SendDataToRMQ(conn, data2send);
+    data2send = "";
 
 	die_on_amqp_error(amqp_channel_close(conn, 1, AMQP_REPLY_SUCCESS), "Closing channel");
 	die_on_amqp_error(amqp_connection_close(conn, AMQP_REPLY_SUCCESS), "Closing connection");
