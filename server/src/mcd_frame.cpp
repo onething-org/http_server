@@ -182,7 +182,7 @@ int CMCDFrame::DispatchDCC() {
                     AjsPacket packet;
 					unsigned int retu;
                     if (ParseFromBuffer(packet, retu, m_pPacketBuf + head_len, body_len) == 0){
-                        ReceiveDataDCC2MCD(packet, ip, port);
+                        // ReceiveDataDCC2MCD(packet, ip, port);
 					}
                 }else{
 					LogInfo("CMCDFrame::DispatchDCC(body_len <= 0)");

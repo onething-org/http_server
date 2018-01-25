@@ -162,7 +162,6 @@ public:
 	virtual ~CHttpServerApp();
 
 	virtual void ReceiveDataCCD2MCD(CHttpReqPkt &packet, unsigned int nFlow, unsigned int nIp, unsigned short nPort);
-	virtual void ReceiveDataDCC2MCD(AjsPacket &packet, unsigned int nIp, unsigned short nPort);
 
     virtual void OnExpire(unsigned int nUniqueId);
 	virtual void OnTimer(time_t cur);
