@@ -20,9 +20,6 @@ unsigned int   g_nSerialTimeInterval;
 unsigned int   g_nHttpPacketMaxLen;
 unsigned int g_nScanServerNum;
 unsigned int g_nPortOpenPercent;
-string g_strDefaultUrl;
-string g_strAlarmMsg;
-int g_nAlarmId;
 unsigned int g_nCountToSend;
 
 // RabbitMQ
@@ -323,15 +320,6 @@ void CHttpServerApp::LoadCfg()
 
     g_nPortOpenPercent = StringToInt(cfgFile.GetIni("port_open_percent"));
     LogInfo("CHttpServerApp::LoadCfg(g_nPortOpenPercent: %d)", g_nPortOpenPercent);
-
-    g_strDefaultUrl = cfgFile.GetIni("default_alarm_url", "");
-    LogInfo("CHttpServerApp::LoadCfg(g_strDefaultUrl: %s)", g_strDefaultUrl.c_str());
-
-    g_strAlarmMsg = cfgFile.GetIni("white_alarm_msg", "");
-    LogInfo("CHttpServerApp::LoadCfg(g_strAlarmMsg: %s)", g_strAlarmMsg.c_str());
-
-    g_nAlarmId = StringToInt(cfgFile.GetIni("white_alarm_id"));
-    LogInfo("CHttpServerApp::LoadCfg(g_nAlarmId: %d)", g_nAlarmId);
 
     g_nCountToSend = StringToInt(cfgFile.GetIni("count_to_send"));
     LogInfo("CHttpServerApp::LoadCfg(g_nCountToSend: %d)", g_nCountToSend);
@@ -822,17 +810,6 @@ void CHttpServerApp::AnalyzeRisk()
 		}
 	}
 
-	// if (!m_riskIpPortType.empty())
-	// {
-	// 	for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
-	// 	{
-	// 		if (14700 == (*it).port || "tcp" == (*it).type)
-	// 		{
-	// 			LogInfo("Risk Alarm! Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
-	// 		}
-	// 	}
-	// }
-
     LogInfo("Size of m_riskyPorts_s: %d", m_riskyPorts_set.size());
 	if (!m_riskyPorts_set.empty())
 	{
@@ -863,192 +840,12 @@ void CHttpServerApp::AnalyzeRisk()
 		}
 	}
 
-	/*
-    LogInfo("Size of m_whiteList_set: %d", m_whiteList_set.size());
-    if (!m_whiteList_set.empty())
-    {
-        for (set<unsigned int>::iterator iti = m_whiteList_set.begin(); iti != m_whiteList_set.end(); ++iti)
-        {
-            int count = 0;
-            for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
-            {
-                if ((*iti) == (*it).port)
-                {
-                    count++;
-                    // TODO: save to log file
-                }
-            }
-
-            if ((unsigned int)((float)count / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
-            {
-                LogInfo("Risk Alarm! Port: %d is not open enough!", *iti);
-            }
-        }
-    }
-    */
-
-    /*
-    LogInfo("Size of m_IpPort_Host_map: %d", m_IpPort_Host_map.size());
-    if (!m_IpPort_Host_map.empty())
-    {
-        for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
-        {
-            LogInfo("m_IpPort_Host_map: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
-            if ((unsigned int)((float)it->second.size() / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
-            {
-                LogInfo("Risk Alarm! IP Port: %s is not open enough!", it->first.c_str());
-                Json::Value fields;
-                fields["object"] = it->first;
-                fields["content"] = g_strAlarmMsg;
-                fields["host"] = it->first;
-                fields["id"] = g_nAlarmId;      // 白名单端口不通告警ID
-                Json::FastWriter writer;
-                string s_fields = writer.write(fields);
-                PostUrl(g_strDefaultUrl, s_fields);
-            }
-        }
-
-        m_IpPort_Host_map.clear();
-    }
-    */
-
-    // curl multi
     if (!m_IpPort_Host_map.empty())
     {
         LogInfo("Size of m_IpPort_Host_map: %d", m_IpPort_Host_map.size());
         SendDataToRMQ();
         m_IpPort_Host_map.clear();
     }
-}
-
-void CHttpServerApp::PostUrl(string strurl, string strfields)
-{
-    CURL *curl;
-    CURLcode res;
-
-    curl_global_init(CURL_GLOBAL_ALL);
-
-    curl = curl_easy_init();
-    if (curl)
-    {
-        curl_slist *plist = curl_slist_append(NULL, "Content-Type:application/json;charset=UTF-8");		// 指定发送内容的格式为JSON
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, plist);
-        curl_easy_setopt(curl, CURLOPT_URL, strurl.c_str());				// 指定url
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, strfields.c_str());		// 指定post内容
-
-        res = curl_easy_perform(curl);
-        if (CURLE_OK != res)
-        {
-            LogError("CHttpServerApp::PostUrl(): CURLcode: %d", res);
-        }
-        curl_easy_cleanup(curl);
-    }
-}
-
-void CHttpServerApp::CurlMInit(CURLM *cm, string str)
-{
-    CURL *eh = curl_easy_init();
-    // curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, cb);
-    curl_easy_setopt(eh, CURLOPT_HEADER, 0L);
-    curl_slist *plist = curl_slist_append(NULL, "Content-Type:application/json;charset=UTF-8");		// 指定发送内容的格式为JSON
-    curl_easy_setopt(eh, CURLOPT_HTTPHEADER, plist);
-    curl_easy_setopt(eh, CURLOPT_URL, g_strDefaultUrl.c_str());
-    curl_easy_setopt(eh, CURLOPT_PRIVATE, g_strDefaultUrl.c_str());
-    curl_easy_setopt(eh, CURLOPT_POSTFIELDS, str.c_str());
-    curl_easy_setopt(eh, CURLOPT_VERBOSE, 0L);
-    curl_multi_add_handle(cm, eh);
-}
-
-void CHttpServerApp::CurlMPrepare(CURLM *cm)
-{
-    for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
-    {
-        LogInfo("m_IpPort_Host_map: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
-        if ((unsigned int)((float)it->second.size() / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
-        {
-            LogInfo("Risk Alarm! IP Port: %s is not open enough!", it->first.c_str());
-            Json::Value fields;
-            fields["object"] = it->first;
-            fields["content"] = g_strAlarmMsg;
-            fields["host"] = it->first;
-            fields["id"] = g_nAlarmId;      // 白名单端口不通告警ID
-            Json::FastWriter writer;
-            string s_fields = writer.write(fields);
-                
-            CurlMInit(cm, s_fields);
-        }
-    }
-}
-
-void CHttpServerApp::CurlMPerform()
-{
-    CURLM *cm = NULL;
-    CURL *eh = NULL;
-    CURLMsg *msg = NULL;
-    CURLcode return_code = CURLE_OK;
-    int still_running = 0, msgs_left = 0;
-    int http_status_code;
-    const char *szUrl;
-
-    curl_global_init(CURL_GLOBAL_ALL);
-
-    cm = curl_multi_init();
-
-    CurlMPrepare(cm);
-
-    curl_multi_perform(cm, &still_running);
-
-    do {
-        int numfds = 0;
-        int res = curl_multi_wait(cm, NULL, 0, MAX_WAIT_MSECS, &numfds);
-        if (res != CURLM_OK)
-        {
-            LogError("CHttpServerApp::CurlMPerform() curl_multi_wait() returned: %d", res);
-            return;
-        }
-        /*
-        if (!numfds) {
-           LogError("CHttpServerApp::CurlMPerform() curl_multi_wait() numfds = %d", numfds);
-           return;
-        }
-        */
-        curl_multi_perform(cm, &still_running);
-
-    } while (still_running);
-
-    while ((msg = curl_multi_info_read(cm, &msgs_left)))
-    {
-        if (msg->msg == CURLMSG_DONE) {
-            eh = msg->easy_handle;
-
-            return_code = msg->data.result;
-            if(return_code!=CURLE_OK) {
-                LogError("CHttpServerApp::CurlMPerform() CURL error code: %d\n", msg->data.result);
-                continue;
-            }
-
-            // Get HTTP status code
-            http_status_code=0;
-            szUrl = NULL;
-
-            curl_easy_getinfo(eh, CURLINFO_RESPONSE_CODE, &http_status_code);
-            curl_easy_getinfo(eh, CURLINFO_PRIVATE, &szUrl);
-
-            if (http_status_code == 200)
-            {
-                LogInfo("CHttpServerApp::CurlMPerform() 200 OK for %s", szUrl);
-            } else {
-                LogError("CHttpServerApp::CurlMPerform() GET of %s returned http status code %d", szUrl, http_status_code);
-            }
-
-            curl_multi_remove_handle(cm, eh);
-            curl_easy_cleanup(eh);
-        } else {
-            LogError("CHttpServerApp::CurlMPerform() after curl_multi_info_read(), CURLMsg = %d", msg->msg);
-        }
-    }
-
-    curl_multi_cleanup(cm);
 }
 
 void CHttpServerApp::SendDataToRMQ()

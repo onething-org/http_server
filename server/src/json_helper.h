@@ -7,7 +7,6 @@
 #include <assert.h>
 #include <iostream>
 #include <curl/curl.h>
-#include <curl/multi.h>
 #include <sys/time.h>
 #include "util.h"
 
