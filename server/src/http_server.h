@@ -172,15 +172,8 @@ public:
 
     virtual void TimeoutHandler();
 
-	virtual void SendErrHttpRsp(int code,
-			   	const string& reason,
-			   	unsigned int &nFlow
-				);
-
-    virtual void SendErrHttpRspByUniqueId(int code,
-                const string& reason,
-                unsigned int &nUniqueId
-                );
+	virtual void SendErrHttpRsp(int code, const string &reason, unsigned int &nFlow);
+    virtual void SendErrHttpRspByUniqueId(int code, const string &reason, unsigned int &nUniqueId);
 
 private:
 	template<typename Type> 
@@ -215,6 +208,7 @@ private:
 		return m_validClientIp_set.find(nIp) != m_validClientIp_set.end();
 	}
 	bool ClientModuleAuth(int client_module, const string &passwd);
+
 public:
 	void UpdateModuleAuth(const map<int, UserInfo> &infos);
 	unsigned int GetEmptyUniqueID(unsigned int nClientId, unsigned int nSessionId);

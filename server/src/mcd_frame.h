@@ -87,10 +87,7 @@ protected:
     virtual void OnTimer(time_t cur){}
     virtual void OnSignalUser1(){}
     virtual void OnSignalUser2(){}
-    virtual void SendErrHttpRsp(int code,
-    		   	const string& reason,
-    		   	unsigned int &nFlow
-    			){}
+    virtual void SendErrHttpRsp(int code, const string &reason, unsigned int &nFlow){}
 
 	//孩子类动作
 	virtual void ChildAction() {}
