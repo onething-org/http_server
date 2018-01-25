@@ -194,32 +194,6 @@ private:
     void ReqWhiteList(Json::Value &request, unsigned int nUniqueId);
     void ReqNormalPort(Json::Value &request, unsigned int nUniqueId);
 
-    void ReqCreate(Json::Value &request, unsigned int nUniqueId);
-    void ReqSetAction(Json::Value &request, unsigned int nUniqueId);
-    void ReqUpdate(Json::Value &request, unsigned int nUniqueId);
-    void ReqQuery(Json::Value &request, unsigned int nUniqueId);
-    void ReqQueryField(Json::Value &request, unsigned int nUniqueId);
-    void ReqQuerySelect(Json::Value &request, unsigned int nUniqueId);
-    void ReqDelete(Json::Value &request, unsigned int nUniqueId);
-	//void ReqQuerySys(int type, unsigned int nIp, unsigned short nPort);
-
-    //2.0.0版本新增批量接口
-    void ReqCreateBatch(Json::Value &request, unsigned int nUniqueId);
-    void ReqSetActionBatch(Json::Value &request, unsigned int nUniqueId);
-    void ReqUpdateBatch(Json::Value &request, unsigned int nUniqueId);
-    void ReqQueryBatch(Json::Value &request, unsigned int nUniqueId);
-    void ReqQueryFieldBatch(Json::Value &request, unsigned int nUniqueId);
-    void ReqDeleteBatch(Json::Value &request, unsigned int nUniqueId);
-	//串行化接口
-    void ReqSequenceCreate(Json::Value &request, unsigned int nUniqueId);
-    void ReqSequenceErase(Json::Value &request, unsigned int nUniqueId);
-    void ReqSequenceDelete(Json::Value &request, unsigned int nUniqueId);
-
-    void ReqCreateMany(Json::Value &request, unsigned int nUniqueId);
-    void ReqQueryTime(Json::Value &request, unsigned int nUniqueId);
-    void ReqQueryAJSAgent(Json::Value &request, unsigned int nUniqueId);
-    void ReqQueryTSCAgent(Json::Value &request, unsigned int nUniqueId);
-
 	void RspCreate(const RspJobCreateList* packet,
 		   	unsigned int nIp,
 		   	unsigned short nPort,
