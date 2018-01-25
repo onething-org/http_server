@@ -404,12 +404,12 @@ void CHttpServerApp::LoadCfg()
 	g_nClearAsyncTimeInterval = StringToInt(cfgFile.GetIni("clear_async_job_time_interval", "600"));
 	LogInfo("CHttpServerApp::LoadCfg(clear_async_job_time_interval: %d)", g_nClearAsyncTimeInterval);
 
-	// 初始化 m_IpPort_Host_map
-	for (int i = 10001; i < 10101; ++i)
-	{
-		string tmp = IntToString(i);
-		m_IpPort_Host_map[tmp].insert("tmc01001");
-	}
+    // 初始化 m_IpPort_Host_map
+    // for (int i = 10001; i < 10101; ++i)
+    // {
+    //     string tmp = IntToString(i);
+    // 	   m_IpPort_Host_map[tmp].insert("tmc01001");
+    // }
 }
 
 void CHttpServerApp::OnExpire(unsigned int nUniqueId)
