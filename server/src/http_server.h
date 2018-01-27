@@ -217,7 +217,7 @@ public:
     void die_on_error(int x, char const *context);
     void die_on_amqp_error(amqp_rpc_reply_t x, char const *context);
     void SendDataToRMQ();
-    void SendDataToRMQ(amqp_connection_state_t conn, string &data);
+    void SendDataToRMQ(amqp_connection_state_t conn, string &key, string &data);
 
 private:
 	CScheduler                                                *m_pScheduler;                 //调度器

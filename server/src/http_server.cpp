@@ -878,6 +878,7 @@ void CHttpServerApp::SendDataToRMQ()
 
 //	amqp_confirm_select(conn, 1);	/* turn publish confirm on */
 
+	string skey = "whiteport";
     string data2send = "";
     unsigned int cnt = 0;
     for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
@@ -896,12 +897,12 @@ void CHttpServerApp::SendDataToRMQ()
 
             if (cnt % g_nCountToSend == 0)
             {
-                SendDataToRMQ(conn, data2send);
+                SendDataToRMQ(conn, skey, data2send);
                 data2send = "";
             }
         }
     }
-    SendDataToRMQ(conn, data2send);
+    SendDataToRMQ(conn, skey, data2send);
     data2send = "";
 
 	die_on_amqp_error(amqp_channel_close(conn, 1, AMQP_REPLY_SUCCESS), "Closing channel");
@@ -909,7 +910,7 @@ void CHttpServerApp::SendDataToRMQ()
 	die_on_error(amqp_destroy_connection(conn), "Ending connection");
 }
 
-void CHttpServerApp::SendDataToRMQ(amqp_connection_state_t conn, string &data)
+void CHttpServerApp::SendDataToRMQ(amqp_connection_state_t conn, string &key, string &data)
 {
 	if("" == data)
 	{
@@ -917,7 +918,13 @@ void CHttpServerApp::SendDataToRMQ(amqp_connection_state_t conn, string &data)
 	}
 
 	char const *messagebody;
-	messagebody = data.c_str();
+	Json::Value value;
+	Json::StyledWriter writer;
+	Json::Value jsonvalue;
+
+	jsonvalue[key] = data;
+	value.append(jsonvalue);
+	messagebody = writer.write(value).c_str();
 
 	{
 		amqp_basic_properties_t props;
