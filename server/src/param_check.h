@@ -184,31 +184,7 @@ int CheckCmdType(const string& strCmdType)
 {
 	if (strCmdType != "risky_port" &&
 		strCmdType != "white_list" &&
-		strCmdType != "normal_port" &&
-			strCmdType != "create" &&
-			strCmdType != "create2" &&
-			strCmdType != "create_sync" &&
-			strCmdType != "create_sync2" &&
-			strCmdType != "op" &&
-			strCmdType != "update" &&
-			strCmdType != "query" &&
-			strCmdType != "query2" &&
-			strCmdType != "query_field" &&
-			strCmdType != "query_select" &&
-			strCmdType != "delete" &&
-			strCmdType != "create2_batch" &&
-			strCmdType != "op_batch" &&
-			strCmdType != "update_batch" &&
-			strCmdType != "query2_batch" &&
-			strCmdType != "query_field_batch" &&
-			strCmdType != "delete_batch" &&
-			strCmdType != "sequence_create" &&
-			strCmdType != "sequence_erase" &&
-			strCmdType != "sequence_delete" &&
-            strCmdType != "create_many" &&
-            strCmdType != "query_time" &&
-            strCmdType != "query_ajs_agent" &&
-            strCmdType != "query_tsc_agent")
+		strCmdType != "normal_port")
 		return -1;
 	else return 0;
 }

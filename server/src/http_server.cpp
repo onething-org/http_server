@@ -840,11 +840,13 @@ void CHttpServerApp::AnalyzeRisk()
 		}
 	}
 
-    if (!m_IpPort_Host_map.empty())
+    if (!m_IpPort_Host_map.empty() || !m_riskyIpPortType_set.empty())
     {
         LogInfo("Size of m_IpPort_Host_map: %d", m_IpPort_Host_map.size());
+        LogInfo("Size of m_riskyIpPortType_set: %d", m_riskyIpPortType_set.size());
         SendDataToRMQ();
         m_IpPort_Host_map.clear();
+        m_riskyIpPortType_set.clear();
     }
 }
 
@@ -913,14 +915,14 @@ void CHttpServerApp::SendDataToRMQ()
     unsigned int cnt = 0;
     for (set<string>::iterator it = m_riskyIpPortType_set.begin(); it != m_riskyIpPortType_set.end(); ++it)
     {
-        LogInfo("m_riskyIpPortType_set: ipporttype: %s", it.c_str());
+        LogInfo("m_riskyIpPortType_set: ipporttype: %s", (*it).c_str());
         cnt++;
 
         if ("" != data2send)
         {
             data2send += "\n";
         }
-        data2send += it->first;
+        data2send += (*it);
 
         if (cnt % g_nCountToSend == 0)
         {
