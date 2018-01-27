@@ -878,6 +878,7 @@ void CHttpServerApp::SendDataToRMQ()
 
 //	amqp_confirm_select(conn, 1);	/* turn publish confirm on */
 
+	{
 	string skey = "whiteport";
     string data2send = "";
     unsigned int cnt = 0;
@@ -904,6 +905,32 @@ void CHttpServerApp::SendDataToRMQ()
     }
     SendDataToRMQ(conn, skey, data2send);
     data2send = "";
+	}
+
+	{
+    string skey = "riskyport";
+    string data2send = "";
+    unsigned int cnt = 0;
+    for (set<string>::iterator it = m_riskyIpPortType_set.begin(); it != m_riskyIpPortType_set.end(); ++it)
+    {
+        LogInfo("m_riskyIpPortType_set: ipporttype: %s", it.c_str());
+        cnt++;
+
+        if ("" != data2send)
+        {
+            data2send += "\n";
+        }
+        data2send += it->first;
+
+        if (cnt % g_nCountToSend == 0)
+        {
+            SendDataToRMQ(conn, skey, data2send);
+            data2send = "";
+        }
+    }
+    SendDataToRMQ(conn, skey, data2send);
+    data2send = "";
+	}
 
 	die_on_amqp_error(amqp_channel_close(conn, 1, AMQP_REPLY_SUCCESS), "Closing channel");
 	die_on_amqp_error(amqp_connection_close(conn, AMQP_REPLY_SUCCESS), "Closing connection");
@@ -1028,10 +1055,6 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 	// to be deleted
 	LogInfo("CHttpServerApp::ReqRiskyPort()");
 
-	ResultInfo result_info;
-	string iptmp;
-	IpPortType ipth;
-
 	try {
 
 		if (req["json_job"].isNull())
@@ -1042,6 +1065,7 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 		}
 
 		Json::Value &request = req["json_job"];
+		string ip_port_type;
 
 		if (!request.isObject())
 		{
@@ -1050,22 +1074,9 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 			return;
 		}
 
-		if (request.isMember("id") && request["id"].isInt())
-		{
-			result_info.id = request["id"].asInt();
-		}
-		else
-		{
-			LogWarning("CHttpServerApp::ReqRiskyPort(Json:: id is invalid, flow id: %u)", nUniqueId);
-			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'id', error: 'invalid value'", nUniqueId);
-			return;
-		}
-
 		if (request.isMember("ip") && request["ip"].isString())
 		{
-			result_info.ip = request["ip"].asString();		// 需转换为整型？
-			iptmp = request["ip"].asString();
-			ipth.ip = request["ip"].asString();
+			ip_port_type = request["ip"].asString();
 		}
 		else
 		{
@@ -1076,9 +1087,8 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("port") && request["port"].isInt())
 		{
-			result_info.port = request["port"].asInt();
-			m_riskPortTypeInfo[iptmp].port = request["port"].asInt();
-			ipth.port = request["port"].asInt();
+			ip_port_type += ":";
+			ip_port_type += IntToString(request["port"].asInt());
 		}
 		else
 		{
@@ -1089,9 +1099,8 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 
 		if (request.isMember("type") && request["type"].isString())
 		{
-			result_info.type = request["type"].asString();
-			m_riskPortTypeInfo[iptmp].type = request["type"].asString();
-			ipth.type = request["type"].asString();
+			ip_port_type += ":";
+			ip_port_type += request["type"].asString();
 		}
 		else
 		{
@@ -1100,28 +1109,13 @@ void CHttpServerApp::ReqRiskyPort(Json::Value &req, unsigned int nUniqueId)
 			return;
 		}
 
-		if (request.isMember("host") && request["host"].isString())
-		{
-			result_info.host = request["host"].asString();
-			m_riskPortTypeInfo[iptmp].hostname = request["host"].asString();
-			ipth.hostname = request["host"].asString();
-		}
-		else
-		{
-			LogWarning("CHttpServerApp::ReqRiskyPort(Json:: host is invalid, flow id: %u)", nUniqueId);
-			SendErrHttpRspByUniqueId(BAD_JSON_REQUEST, BAD_JSON_REQUEST_REASON + "param: 'host', error: 'invalid value'", nUniqueId);
-			return;
-		}
-
-		m_riskIpPortType.insert(ipth);
+		m_riskyIpPortType_set.insert(ip_port_type);
 
 	} catch (exception &e) {
 		LogWarning("CHttpServerApp::ReqRiskyPort(catch an exception, flow id: %u)", nUniqueId);
 		SendErrHttpRspByUniqueId(BAD_JSON_REQUEST,BAD_JSON_REQUEST_REASON + e.what(), nUniqueId);
 		return;
 	}
-
-	LogInfo("CHttpServerApp::ReqRiskyPort(). result_info: id: %d, ip: %s, port: %d, type %s, host: %s", result_info.id, result_info.ip.c_str(), result_info.port, result_info.type.c_str(), result_info.host.c_str());
 
 	Json::Value response;
 	response["errno"] = 0;
