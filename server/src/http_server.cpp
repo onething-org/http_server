@@ -794,6 +794,7 @@ void CHttpServerApp::AnalyzeRisk()
 {
 	LogDebug("CHttpServerApp::AnalyzeRisk()");
 
+    /*
 	if (!m_riskPortTypeInfo.empty())
 	{
 		for (map<string, PortType>::iterator it = m_riskPortTypeInfo.begin(); it != m_riskPortTypeInfo.end(); ++it)
@@ -839,6 +840,7 @@ void CHttpServerApp::AnalyzeRisk()
 			}
 		}
 	}
+    */
 
     if (!m_IpPort_Host_map.empty() || !m_riskyIpPortType_set.empty())
     {
