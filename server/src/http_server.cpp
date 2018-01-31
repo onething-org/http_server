@@ -899,32 +899,7 @@ void CHttpServerApp::SendDataToRMQ()
         wdata2send = "";
     }
 
-	{
-    string skey = "riskyport";
-    string data2send = "";
-    unsigned int cnt = 0;
-    for (set<string>::iterator it = m_riskyIpPortType_set.begin(); it != m_riskyIpPortType_set.end(); ++it)
     {
-        LogInfo("m_riskyIpPortType_set: ipporttype: %s", (*it).c_str());
-        cnt++;
-
-        if ("" != data2send)
-        {
-            data2send += "\n";
-        }
-        data2send += (*it);
-
-        if (cnt % g_nCountToSend == 0)
-        {
-            SendDataToRMQ(conn, skey, data2send);
-            data2send = "";
-        }
-    }
-    SendDataToRMQ(conn, skey, data2send);
-    data2send = "";
-	}
-
-	{
         string rkey = "riskyport";
         string nkey = "normalport";
         string rdata2send = "";
@@ -933,7 +908,7 @@ void CHttpServerApp::SendDataToRMQ()
         {
             LogInfo("m_riskyIpPortType_set: ipporttype: %s", (*it).c_str());
 
-            if (/* 高危端口 || 高危服务 */)
+            if (true /* 高危端口 || 高危服务 */)
             {
                 if ("" != rdata2send)
                 {
