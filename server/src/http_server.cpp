@@ -278,8 +278,7 @@ void CHttpServerApp::LoadCfg()
 		m_riskyPorts_set.clear();
 		for(size_t i = 0; i != v_ports_s.size(); ++i)
 		{
-			int ipt = StringToInt(Trim(v_ports_s[i]));
-			m_riskyPorts_set.insert(ipt);
+			m_riskyPorts_set.insert(v_ports_s[i]);
 			LogInfo("CHttpServerApp::LoadCfg(risky port: %s)", v_ports_s[i].c_str());
 		}
 	}
@@ -908,7 +907,12 @@ void CHttpServerApp::SendDataToRMQ()
         {
             LogInfo("m_riskyIpPortType_set: ipporttype: %s", (*it).c_str());
 
-            if (true /* 高危端口 || 高危服务 */)
+            vector<string> str_v;
+            SplitDataToVector(str_v, (*it), ":");
+
+            // 高危端口 || 高危服务
+            if (m_riskyPorts_set.find(str_v[1]) != m_riskyPorts_set.end() ||
+                m_riskyServices_set.find(str_v[2]) != m_riskyServices_set.end())
             {
                 if ("" != rdata2send)
                 {

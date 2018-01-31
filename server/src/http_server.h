@@ -266,7 +266,7 @@ private:
 
     map<string, PortType> m_riskPortTypeInfo;
     set<IpPortType> m_riskIpPortType;
-    set<unsigned int> m_riskyPorts_set;
+    set<string> m_riskyPorts_set;
     set<string> m_riskyServices_set;
     set<unsigned int> m_whiteList_set;
     multimap<string, string> m_resultWhiteList_mmap;
