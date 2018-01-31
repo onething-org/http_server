@@ -882,34 +882,27 @@ void CHttpServerApp::SendDataToRMQ()
 
 //	amqp_confirm_select(conn, 1);	/* turn publish confirm on */
 
-	{
-	string skey = "whiteport";
-    string data2send = "";
-    unsigned int cnt = 0;
-    for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
     {
-        LogInfo("m_IpPort_Host_map: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
-        if ((unsigned int)((float)it->second.size() / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
+        string wskey = "whiteport";
+        string wdata2send = "";
+        for (map<string, set<string> >::iterator it = m_IpPort_Host_map.begin(); it != m_IpPort_Host_map.end(); ++it)
         {
-            cnt++;
-            LogInfo("Risk Alarm! IP Port: %s is not open enough!", it->first.c_str());
+            LogInfo("m_IpPort_Host_map: ipport: %s, hosts: %d", it->first.c_str(), it->second.size());
 
-            if ("" != data2send)
+            if ((unsigned int)((float)it->second.size() / (float)g_nScanServerNum * 100) < g_nPortOpenPercent)
             {
-                data2send += "\n";
-            }
-            data2send += it->first;
+                LogInfo("Risk Alarm! IP Port: %s is not open enough!", it->first.c_str());
 
-            if (cnt % g_nCountToSend == 0)
-            {
-                SendDataToRMQ(conn, skey, data2send);
-                data2send = "";
+                if ("" != wdata2send)
+                {
+                    wdata2send += "\n";
+                }
+                wdata2send += it->first;
             }
         }
+        SendDataToRMQ(conn, wskey, wdata2send);
+        wdata2send = "";
     }
-    SendDataToRMQ(conn, skey, data2send);
-    data2send = "";
-	}
 
 	{
     string skey = "riskyport";
@@ -935,6 +928,38 @@ void CHttpServerApp::SendDataToRMQ()
     SendDataToRMQ(conn, skey, data2send);
     data2send = "";
 	}
+
+	{
+        string rkey = "riskyport";
+        string nkey = "normalport";
+        string rdata2send = "";
+        string ndata2send = "";
+        for (set<string>::iterator it = m_riskyIpPortType_set.begin(); it != m_riskyIpPortType_set.end(); ++it)
+        {
+            LogInfo("m_riskyIpPortType_set: ipporttype: %s", (*it).c_str());
+
+            if (/* 高危端口 || 高危服务 */)
+            {
+                if ("" != rdata2send)
+                {
+                    rdata2send += "\n";
+                }
+                rdata2send += (*it);
+            }
+            else
+            {
+                if ("" != ndata2send)
+                {
+                    ndata2send += "\n";
+                }
+                ndata2send += (*it);
+            }
+        }
+        SendDataToRMQ(conn, rkey, rdata2send);
+        rdata2send = "";
+        SendDataToRMQ(conn, nkey, ndata2send);
+        ndata2send = "";
+    }
 
 	die_on_amqp_error(amqp_channel_close(conn, 1, AMQP_REPLY_SUCCESS), "Closing channel");
 	die_on_amqp_error(amqp_connection_close(conn, AMQP_REPLY_SUCCESS), "Closing connection");
