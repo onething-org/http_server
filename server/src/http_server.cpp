@@ -793,54 +793,6 @@ void CHttpServerApp::AnalyzeRisk()
 {
 	LogDebug("CHttpServerApp::AnalyzeRisk()");
 
-    /*
-	if (!m_riskPortTypeInfo.empty())
-	{
-		for (map<string, PortType>::iterator it = m_riskPortTypeInfo.begin(); it != m_riskPortTypeInfo.end(); ++it)
-		{
-			LogInfo("CHttpServerApp::AnalyzeRisk(). Risky info: ip: %s, port: %d, type %s, host: %s", it->first.c_str(), it->second.port, it->second.type.c_str(), it->second.hostname.c_str());
-		}
-	}
-
-	if (!m_riskIpPortType.empty())
-	{
-		for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
-		{
-			LogInfo("CHttpServerApp::AnalyzeRisk(). m_riskIpPortType. Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
-		}
-	}
-
-    LogInfo("Size of m_riskyPorts_s: %d", m_riskyPorts_set.size());
-	if (!m_riskyPorts_set.empty())
-	{
-		for (set<unsigned int>::iterator iti = m_riskyPorts_set.begin(); iti != m_riskyPorts_set.end(); ++iti)
-		{
-			for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
-			{
-				if ((*iti) == (*it).port)
-				{
-					LogInfo("Risk Alarm! Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
-				}
-			}
-		}
-	}
-
-    LogInfo("Size of m_riskyServices_set: %d", m_riskyServices_set.size());
-	if (!m_riskyServices_set.empty())
-	{
-		for (set<string>::iterator its = m_riskyServices_set.begin(); its != m_riskyServices_set.end(); ++its)
-		{
-			for (set<IpPortType>::iterator it = m_riskIpPortType.begin(); it != m_riskIpPortType.end(); ++it)
-			{
-				if ((*its) == (*it).type)
-				{
-					LogInfo("Risk Alarm! Risky info: ip: %s, port: %d, type %s, host: %s", (*it).ip.c_str(), (*it).port, (*it).type.c_str(), (*it).hostname.c_str());
-				}
-			}
-		}
-	}
-    */
-
     if (!m_IpPort_Host_map.empty() || !m_riskyIpPortType_set.empty())
     {
         LogInfo("Size of m_IpPort_Host_map: %d", m_IpPort_Host_map.size());
